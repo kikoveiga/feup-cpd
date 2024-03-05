@@ -4,6 +4,8 @@
 #include <time.h>
 #include <cstdlib>
 #include <papi.h>
+#include <omp.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -181,7 +183,108 @@ void OnMultBlock(int m_ar, int m_br, int bkSize) {
     free(phc);
 }
 
+void OnMultLineParallel1(int m_ar, int m_br) {
+    double start_time, end_time; // Use doubles to hold the start and end times
+    double temp;
+    int i, j, k;
 
+    double *pha, *phb, *phc;
+
+    pha = (double *)malloc((m_ar * m_ar) * sizeof(double));
+    phb = (double *)malloc((m_ar * m_ar) * sizeof(double));
+    phc = (double *)malloc((m_ar * m_ar) * sizeof(double));
+
+    // Initialize matrices
+    for (i = 0; i < m_ar; i++)
+        for (j = 0; j < m_ar; j++)
+            pha[i*m_ar + j] = (double)1.0;
+
+    for (i = 0; i < m_br; i++)
+        for (j = 0; j < m_br; j++)
+            phb[i*m_br + j] = (double)(i+1);
+
+    start_time = omp_get_wtime(); // Capture start time
+
+    int num_threads = 100;
+
+    // Line-by-line multiplication
+    #pragma omp parallel for private(k, j, temp) num_threads(num_threads)
+    for (int i = 0; i < m_ar; i++) {
+        for (int k = 0; k < m_ar; k++) {
+            double temp = pha[i * m_ar + k];
+            for (int j = 0; j < m_br; j++) {
+                phc[i * m_ar + j] += temp * phb[k * m_br + j];
+            }
+        }
+    }
+
+    end_time = omp_get_wtime(); // Capture end time
+
+    // Print execution time
+    cout << "Time: " << fixed << setprecision(3) << (end_time - start_time) << " seconds\n";
+
+    // Display 10 elements of the result matrix to verify correctness
+    cout << "Result matrix: " << endl;
+    for(i = 0; i < 1; i++) {
+        for(j = 0; j < min(10, m_br); j++)
+            cout << phc[j] << " ";
+    }
+    cout << endl;
+    
+    free(pha);
+    free(phb);
+    free(phc);
+}
+
+void OnMultLineParallel2(int m_ar, int m_br) {
+    double start_time, end_time; // Use doubles to hold the start and end times
+    double temp;
+    int i, j, k;
+
+    double *pha, *phb, *phc;
+
+    pha = (double *)malloc((m_ar * m_ar) * sizeof(double));
+    phb = (double *)malloc((m_ar * m_ar) * sizeof(double));
+    phc = (double *)malloc((m_ar * m_ar) * sizeof(double));
+
+    // Initialize matrices
+    for (i = 0; i < m_ar; i++)
+        for (j = 0; j < m_ar; j++)
+            pha[i*m_ar + j] = (double)1.0;
+
+    for (i = 0; i < m_br; i++)
+        for (j = 0; j < m_br; j++)
+            phb[i*m_br + j] = (double)(i+1);
+
+    start_time = omp_get_wtime(); // Capture start time
+
+    for (int i = 0; i < m_ar; i++) {
+        for (int k = 0; k < m_ar; k++) {
+            double temp = pha[i * m_ar + k];
+            #pragma omp parallel for // Apply parallel for to j loop
+            for (int j = 0; j < m_br; j++) {
+                phc[i * m_ar + j] += temp * phb[k * m_br + j];
+            }
+        }
+    }
+
+    end_time = omp_get_wtime(); // Capture end time
+
+    // Print execution time
+    cout << "Time: " << fixed << setprecision(3) << (end_time - start_time) << " seconds\n";
+
+    // Display 10 elements of the result matrix to verify correctness
+    cout << "Result matrix: " << endl;
+    for(i = 0; i < 1; i++) {
+        for(j = 0; j < min(10, m_br); j++)
+            cout << phc[j] << " ";
+    }
+    cout << endl;
+    
+    free(pha);
+    free(phb);
+    free(phc);
+}
 
 void handle_error (int retval)
 {
@@ -237,6 +340,8 @@ int main (int argc, char *argv[])
 		cout << endl << "1. Multiplication" << endl;
 		cout << "2. Line Multiplication" << endl;
 		cout << "3. Block Multiplication" << endl;
+        cout << "4. Line Multiplication (multi-core v1)" << endl;
+        cout << "5. Line Multiplication (multi-core v2)" << endl;
 		cout << "Selection?: ";
 		cin >>op;
 		if (op == 0)
@@ -262,7 +367,12 @@ int main (int argc, char *argv[])
 				cin >> blockSize;
 				OnMultBlock(lin, col, blockSize);  
 				break;
-
+            case 4:
+                OnMultLineParallel1(lin, col);  
+				break;
+            case 5:
+                OnMultLineParallel2(lin, col);
+                break;
 		}
 
   		ret = PAPI_stop(EventSet, values);
