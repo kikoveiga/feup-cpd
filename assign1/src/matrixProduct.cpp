@@ -208,7 +208,7 @@ void OnMultLineParallel1(int m_ar, int m_br) {
     int num_threads = 100;
 
     // Line-by-line multiplication
-    #pragma omp parallel for private(k, j, temp) num_threads(num_threads)
+    #pragma omp parallel for
     for (int i = 0; i < m_ar; i++) {
         for (int k = 0; k < m_ar; k++) {
             double temp = pha[i * m_ar + k];
@@ -258,10 +258,11 @@ void OnMultLineParallel2(int m_ar, int m_br) {
 
     start_time = omp_get_wtime(); // Capture start time
 
+    #pragma omp parallel
     for (int i = 0; i < m_ar; i++) {
         for (int k = 0; k < m_ar; k++) {
             double temp = pha[i * m_ar + k];
-            #pragma omp parallel for // Apply parallel for to j loop
+            #pragma omp for
             for (int j = 0; j < m_br; j++) {
                 phc[i * m_ar + j] += temp * phb[k * m_br + j];
             }
