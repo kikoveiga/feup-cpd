@@ -256,7 +256,7 @@ void OnMultLineParallel2(int m_ar, int m_br) {
 
     start_time = omp_get_wtime(); // Capture start time
 
-    #pragma omp parallel
+    #pragma omp parallel private (i,k)
     for (int i = 0; i < m_ar; i++) {
         for (int k = 0; k < m_ar; k++) {
             double temp = pha[i * m_ar + k];
