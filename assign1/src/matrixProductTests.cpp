@@ -135,8 +135,8 @@ void OnMultBlock(int m_ar, int m_br, int bkSize) {
 
     // Block-by-block multiplication
     for (i0 = 0; i0 < m_ar; i0 += bkSize) {
-        for (j0 = 0; j0 < m_br; j0 += bkSize) {
-            for (k0 = 0; k0 < m_ar; k0 += bkSize) {
+        for (k0 = 0; k0 < m_ar; k0 += bkSize) {
+            for (j0 = 0; j0 < m_ar; j0 += bkSize) {
                 // Ensure the blocks fit within the cache sizes
                 for (i = i0; i < min(i0 + bkSize, m_ar); i++) {
                     for (k = k0; k < min(k0 + bkSize, m_ar); k++) {
