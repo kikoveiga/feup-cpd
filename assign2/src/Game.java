@@ -6,22 +6,22 @@ import game_logic.Deck;
 import game_logic.Card;
 
 public class Game {
-    private List<Client> playersList;
+    private List<Socket> playerSockets;
     private Deck deck;
     private List<Card> dealerHand;
 
-    public Game(int players, List<Client> playerSockets) {
-        this.playersList = playersList;
+    public Game(int players, List<Socket> playerSockets) {
+        this.playerSockets = playerSockets;
         this.deck = new Deck();
         this.dealerHand = new LinkedList<>();
     }
     public void start() {
-        System.out.println("Starting blackjack game with " + playersList.size() + " players");
+        System.out.println("Starting blackjack game with " + playerSockets.size() + " players");
     
         // Deal initial two cards to each player and the dealer
-        for (Client client : playersList) {
-            dealInitialCards(client);
-        }
+        // for (Client client : playerSockets) {
+        //     dealInitialCards(client);
+        // }
 
         dealInitialCardsToDealer();
     }

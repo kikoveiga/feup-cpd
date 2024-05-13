@@ -1,7 +1,6 @@
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -10,7 +9,7 @@ import java.util.concurrent.Executors;
 public class Server {
 
     private final ExecutorService executor;
-    private final List<Socket> clientSockets = Collections.synchronizedList(new ArrayList<>());
+    private final CustomThreadSafeList<Socket> clientSockets = new CustomThreadSafeList<>();
 
     public Server() {
         int MAX_NUMBER_GAMES = 5;
@@ -27,13 +26,11 @@ public class Server {
         PrintWriter writer = new PrintWriter(output, true);
         writer.println(new Date().toString());
 
-        synchronized (clientSockets) {
-            clientSockets.add(socket);
-            if (clientSockets.size() >= 2) { // let's do 2 required players for now
-                List<Socket> players = new ArrayList<>(clientSockets.subList(0, 2));
-                clientSockets.removeAll(players);
-                executor.execute(() -> startGame(players));
-            }
+        clientSockets.add(socket);
+        if (clientSockets.size() >= 2) { // let's do 2 required players for now
+            List<Socket> players = new ArrayList<>(clientSockets.subList(0, 2));
+            clientSockets.removeAll(players);
+            executor.execute(() -> startGame(players));
         }
     }
 
