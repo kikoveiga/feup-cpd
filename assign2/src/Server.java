@@ -22,8 +22,13 @@ public class Server {
     private final List<Client> clientQueue;
     private final Lock clientQueue_lock = new ReentrantLock();
 
+    // Game List
+    private final List<Game> gameList;
+    private final Lock gameList_lock = new ReentrantLock();
+
     public Server() {
         this.clientQueue = new ArrayList<Client>();
+        this.gameList = new ArrayList<Game>();
         executor = Executors.newFixedThreadPool(MAX_NUMBER_GAMES);
     }
 
@@ -68,7 +73,6 @@ public class Server {
         clientQueue_lock.lock();
         if (clientQueue.size() == PLAYERS_PER_GAME) {
             startNewGame(clientQueue);
-            System.out.println("Started a new Game");
         }
         clientQueue_lock.unlock();
     }
@@ -76,6 +80,11 @@ public class Server {
     // Starts a new game with players (Clients) in playerList
     private void startNewGame(List<Client> playerList) {
         Game game = new Game(playerList);
+        gameList_lock.lock();
+        gameList.add(game);
+        String log = String.format("[Game %d] Started Game", gameList.size());
+        System.out.println(log);
+        gameList_lock.unlock();
         clientQueue.clear();
     }
 
