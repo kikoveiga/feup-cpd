@@ -10,7 +10,6 @@ public class Game {
     private Deck deck;
     private List<Card> dealerHand;
 
-    private final int MAX_PLAYERS_PER_GAME = 5;
     private final int MIN_PLAYERS_PER_GAME = 2;
 
     public Game() {
@@ -20,12 +19,21 @@ public class Game {
         this.updateState();
     }
 
+    public CustomThreadSafeList<Socket> getPlayerSockets() {
+        return this.playerSockets;
+    }
+
     public int getPlayerCount() {
         return this.playerSockets.size();
     }
 
     public void addPlayer(Socket playerSocket) {
         this.playerSockets.add(playerSocket);
+        this.updateState();
+    }
+
+    public void removePlayer(Socket playerSocket) {
+        this.playerSockets.remove(playerSocket);
         this.updateState();
     }
 
@@ -38,7 +46,6 @@ public class Game {
     }
 
     public void waitForPlayers() {
-        // Not sure if message printed here or in Server
         if (this.getPlayerCount() > 0) {
             System.out.println("Waiting in Lobby, " + this.getPlayerCount() + " players connected");
         }

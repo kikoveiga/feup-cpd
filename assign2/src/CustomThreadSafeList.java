@@ -53,6 +53,15 @@ public class CustomThreadSafeList<T> implements Iterable<T> {
         }
     }
 
+    public boolean contains(T element) {
+        lock.lock();
+        try {
+            return list.contains(element);
+        } finally {
+            lock.unlock();
+        }
+    }
+
     @Override
     public Iterator<T> iterator() {
         return new CustomThreadSafeIterator();
