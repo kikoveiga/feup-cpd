@@ -1,7 +1,6 @@
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,15 +15,24 @@ public class Server {
         executor = Executors.newFixedThreadPool(MAX_NUMBER_GAMES);
     }
 
+    private void writeToClient(Socket clientSocket, String message) {
+        try {
+            OutputStream output = clientSocket.getOutputStream();
+            PrintWriter writer = new PrintWriter(output, true);
+            writer.println(message);
+        } catch (IOException exception) {
+            System.out.println("Error writing to Server: " + exception.getMessage());
+        }
+    }
+
     private void handleClient(Socket socket) throws IOException {
         InputStream input = socket.getInputStream();
         BufferedReader reader = new BufferedReader(new InputStreamReader(input));
         String message = reader.readLine();
         System.out.println("New client connected: " + message);
 
-        OutputStream output = socket.getOutputStream();
-        PrintWriter writer = new PrintWriter(output, true);
-        writer.println(new Date().toString());
+        String msgToClient = "You connected to the Game";
+        writeToClient(socket, msgToClient);
 
         clientSockets.add(socket);
         if (clientSockets.size() >= 2) { // let's do 2 required players for now
