@@ -33,12 +33,12 @@ public class Client {
             String connectedMsg = String.format("Player %s connected", client.username);
             client.writeToServer(socket, connectedMsg);
 
-            InputStream input = socket.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-
-            String time = reader.readLine();
-
-            System.out.println(time);
+            while (true) {
+                InputStream input = socket.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+                String time = reader.readLine();
+                System.out.println(time);
+            }
 
         } catch (UnknownHostException ex) {
             System.out.println("Server not found: " + ex.getMessage());

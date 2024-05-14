@@ -6,15 +6,44 @@ import game_logic.Deck;
 import game_logic.Card;
 
 public class Game {
-    private List<Socket> playerSockets;
+    private CustomThreadSafeList<Socket> playerSockets;
     private Deck deck;
     private List<Card> dealerHand;
 
-    public Game(int players, List<Socket> playerSockets) {
-        this.playerSockets = playerSockets;
+    private final int MAX_PLAYERS_PER_GAME = 5;
+    private final int MIN_PLAYERS_PER_GAME = 2;
+
+    public Game() {
+        this.playerSockets = new CustomThreadSafeList<Socket>();
         this.deck = new Deck();
         this.dealerHand = new LinkedList<>();
+        this.updateState();
     }
+
+    public int getPlayerCount() {
+        return this.playerSockets.size();
+    }
+
+    public void addPlayer(Socket playerSocket) {
+        this.playerSockets.add(playerSocket);
+        this.updateState();
+    }
+
+    public void updateState() {
+        if (this.getPlayerCount() < MIN_PLAYERS_PER_GAME) {
+            this.waitForPlayers();
+        } else if (this.getPlayerCount() >= MIN_PLAYERS_PER_GAME) {
+            this.start();
+        }
+    }
+
+    public void waitForPlayers() {
+        // Not sure if message printed here or in Server
+        if (this.getPlayerCount() > 0) {
+            System.out.println("Waiting in Lobby, " + this.getPlayerCount() + " players connected");
+        }
+    }
+
     public void start() {
         System.out.println("Starting blackjack game with " + playerSockets.size() + " players");
     

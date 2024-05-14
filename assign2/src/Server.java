@@ -8,10 +8,10 @@ import java.util.concurrent.Executors;
 public class Server {
 
     private final ExecutorService executor;
-    private final CustomThreadSafeList<Socket> clientSockets = new CustomThreadSafeList<>();
+    private final CustomThreadSafeList<Game> ongoingGames = new CustomThreadSafeList<>();
+    private final int MAX_NUMBER_GAMES = 5;
 
     public Server() {
-        int MAX_NUMBER_GAMES = 5;
         executor = Executors.newFixedThreadPool(MAX_NUMBER_GAMES);
     }
 
@@ -34,16 +34,14 @@ public class Server {
         String msgToClient = "You connected to the Game";
         writeToClient(socket, msgToClient);
 
-        clientSockets.add(socket);
-        if (clientSockets.size() >= 2) { // let's do 2 required players for now
-            List<Socket> players = new ArrayList<>(clientSockets.subList(0, 2));
-            clientSockets.removeAll(players);
-            executor.execute(() -> startGame(players));
-        }
+        assignPlayerToGame(socket);
     }
 
-    private void startGame(List<Socket> players) {
-        new Game(players.size(), players).start();
+    private void assignPlayerToGame(Socket socket) {
+        if (this.ongoingGames.size() == 0) {
+            Game newGame = new Game();
+            newGame.addPlayer(socket);
+        }
     }
 
     public static void main(String[] args) {
