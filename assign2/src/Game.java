@@ -6,60 +6,14 @@ import game_logic.Deck;
 import game_logic.Card;
 
 public class Game {
-    private CustomThreadSafeList<Socket> playerSockets;
+    private List<Client> playerList;
     private Deck deck;
     private List<Card> dealerHand;
 
-    private final int MIN_PLAYERS_PER_GAME = 2;
-
-    public Game() {
-        this.playerSockets = new CustomThreadSafeList<Socket>();
+    public Game(List<Client> playerList) {
+        this.playerList = playerList;
         this.deck = new Deck();
         this.dealerHand = new LinkedList<>();
-        this.updateState();
-    }
-
-    public CustomThreadSafeList<Socket> getPlayerSockets() {
-        return this.playerSockets;
-    }
-
-    public int getPlayerCount() {
-        return this.playerSockets.size();
-    }
-
-    public void addPlayer(Socket playerSocket) {
-        this.playerSockets.add(playerSocket);
-        this.updateState();
-    }
-
-    public void removePlayer(Socket playerSocket) {
-        this.playerSockets.remove(playerSocket);
-        this.updateState();
-    }
-
-    public void updateState() {
-        if (this.getPlayerCount() < MIN_PLAYERS_PER_GAME) {
-            this.waitForPlayers();
-        } else if (this.getPlayerCount() >= MIN_PLAYERS_PER_GAME) {
-            this.start();
-        }
-    }
-
-    public void waitForPlayers() {
-        if (this.getPlayerCount() > 0) {
-            System.out.println("Waiting in Lobby, " + this.getPlayerCount() + " players connected");
-        }
-    }
-
-    public void start() {
-        System.out.println("Starting blackjack game with " + playerSockets.size() + " players");
-    
-        // Deal initial two cards to each player and the dealer
-        // for (Client client : playerSockets) {
-        //     dealInitialCards(client);
-        // }
-
-        dealInitialCardsToDealer();
     }
 
     private void dealInitialCards(Client client) {

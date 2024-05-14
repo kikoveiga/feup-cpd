@@ -1,16 +1,29 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Server {
 
     private final ExecutorService executor;
-    private final CustomThreadSafeList<Game> ongoingGames = new CustomThreadSafeList<>();
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    
+    // General Info
     private final int MAX_NUMBER_GAMES = 5;
-    private final int MAX_PLAYERS_PER_GAME = 5;
+    private final int PLAYERS_PER_GAME = 3;
+
+    // Client Queue
+    private final List<Client> clientQueue;
+    private final Lock clientQueue_lock = new ReentrantLock();
 
     public Server() {
+        this.clientQueue = new ArrayList<Client>();
         executor = Executors.newFixedThreadPool(MAX_NUMBER_GAMES);
     }
 
@@ -25,73 +38,85 @@ public class Server {
     }
 
     private void handleClient(Socket socket) throws IOException {
-        InputStream input = socket.getInputStream();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-        String message = reader.readLine();
-        System.out.println("New client connected: " + message);
+        Client client = new Client("default-username", socket);
+        addClientToQueue(client);
+        checkForNewGame();
+        // InputStream input = socket.getInputStream();
+        // BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+        // String message = reader.readLine();
+        // System.out.println("New client connected: " + message);
 
-        String msgToClient = "You connected to the Game";
-        writeToClient(socket, msgToClient);
+        // String msgToClient = "You connected to the Game";
+        // writeToClient(socket, msgToClient);
 
-        assignPlayerToGame(socket);
+        // assignPlayerToGame(socket);
 
-        monitorSocket(socket);
+        // monitorSocket(socket);
     }
 
-    private void assignPlayerToGame(Socket socket) {
-        // Create a New Game
-        if (this.ongoingGames.size() == 0) {
-            Game newGame = new Game();
-            this.ongoingGames.add(newGame);
-            newGame.addPlayer(socket);
-        } else {
-            Game game = this.searchForGame();
-            if (game != null) {
-                game.addPlayer(socket);
-            } else {
-                // TODO -> Handle what to do
-                System.out.println("No available games");
-            }
+    // Adds a Client to the clientQueue
+    private void addClientToQueue(Client client) {
+        clientQueue_lock.lock();
+        clientQueue.add(client);
+        String log = String.format("Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
+        System.out.println(log);
+        clientQueue_lock.unlock();
+    }
+
+    // Checks if a new Game should start
+    private void checkForNewGame() {
+        clientQueue_lock.lock();
+        if (clientQueue.size() == PLAYERS_PER_GAME) {
+            startNewGame(clientQueue);
+            System.out.println("Started a new Game");
         }
+        clientQueue_lock.unlock();
     }
 
-    // Logic to search for an available Game
-    private Game searchForGame() {
-        for (Game game : this.ongoingGames) {
-            if (game.getPlayerCount() < MAX_PLAYERS_PER_GAME) {
-                return game;
-            }
-        }
-
-        // If there are no available Games
-        return null;
+    // Starts a new game with players (Clients) in playerList
+    private void startNewGame(List<Client> playerList) {
+        Game game = new Game(playerList);
+        clientQueue.clear();
     }
 
-    private void removePlayerFromGame(Socket socket) {
-        for (Game game : ongoingGames) {
-            if (game.getPlayerSockets().contains(socket)) {
-                System.out.println("A player disconnected.");
-                game.removePlayer(socket);
-            }
-        }
-    }
+    // private void removePlayerFromGame(Socket socket) {
+    //     for (Game game : ongoingGames) {
+    //         if (game.getPlayerSockets().contains(socket)) {
+    //             System.out.println("A player disconnected.");
+    //             game.removePlayer(socket);
+    //         }
+    //     }
+    // }
     
     // monitor the socket's input stream. 
     // When the socket is disconnected, it will catch an IOException.
-    private void monitorSocket(Socket socket) {
-        executor.execute(() -> {
-            try {
-                InputStream input = socket.getInputStream();
-                while (input.read() != -1) {
-                    // Keep reading to detect socket disconnection
-                }
-            } catch (IOException e) {
-                // Socket is disconnected
-                System.out.println("A player disconnected 2.");
-                removePlayerFromGame(socket);
-            }
-        });
-    }
+    // private void monitorSocket(Socket socket) {
+    //     executor.execute(() -> {
+    //         try {
+    //             InputStream input = socket.getInputStream();
+    //             while (input.read() != -1) {
+    //                 // Keep reading to detect socket disconnection
+    //             }
+    //         } catch (IOException e) {
+    //             // Socket is disconnected
+    //             System.out.println("A player disconnected 2.");
+    //             removePlayerFromGame(socket);
+    //         }
+    //     });
+    // }
+
+    // private void pingClients() {
+    //     scheduler.scheduleAtFixedRate(() -> {
+    //         long currentTime = System.currentTimeMillis();
+    //         for (Socket socket : clientLastPingTime.keySet()) {
+    //             if (currentTime - clientLastPingTime.get(socket) > 5000) { // 5 seconds timeout
+    //                 removePlayerFromGame(socket);
+    //             } else {
+    //                 writeToClient(socket, "PING");
+    //             }
+    //         }
+    //     }, 0, 5, TimeUnit.SECONDS); // Ping every 5 seconds
+    // }
 
     public static void main(String[] args) {
         if (args.length < 1) return;
@@ -103,6 +128,7 @@ public class Server {
             System.out.println("Server is listening on port " + port);
 
             Server server = new Server();
+            // server.pingClients();
 
             while (true) {
                 Socket socket = serverSocket.accept();

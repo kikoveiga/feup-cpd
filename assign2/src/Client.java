@@ -5,19 +5,19 @@ import java.net.UnknownHostException;
 public class Client {
 
     private String username;
+    private Socket socket;
 
-    public Client(String username) {
+    public Client(String username, Socket socket) {
         this.username = username;
+        this.socket = socket;
     }
 
-    private void writeToServer(Socket serverSocket, String message) {
-        try {
-            OutputStream output = serverSocket.getOutputStream();
-            PrintWriter writer = new PrintWriter(output, true);
-            writer.println(message);
-        } catch (IOException exception) {
-            System.out.println("Error writing to Server: " + exception.getMessage());
-        }
+    public String getUsername() {
+        return username;
+    }
+
+    public Socket getSocket() {
+        return socket;
     }
 
     public static void main(String[] args) {
@@ -26,12 +26,12 @@ public class Client {
         String hostname = args[0];
         int port = Integer.parseInt(args[1]);
 
-        Client client = new Client("player1");
-
         try (Socket socket = new Socket(hostname, port)) {
 
-            String connectedMsg = String.format("Player %s connected", client.username);
-            client.writeToServer(socket, connectedMsg);
+            String connectedMsg = String.format("Player connected");
+            OutputStream output = socket.getOutputStream();
+            PrintWriter writer = new PrintWriter(output, true);
+            writer.println(connectedMsg);
 
             while (true) {
                 InputStream input = socket.getInputStream();
