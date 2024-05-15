@@ -32,20 +32,39 @@ public class Server {
         executor = Executors.newFixedThreadPool(MAX_NUMBER_GAMES);
     }
 
-    private void writeToClient(Socket clientSocket, String message) {
-        try {
-            OutputStream output = clientSocket.getOutputStream();
-            PrintWriter writer = new PrintWriter(output, true);
-            writer.println(message);
-        } catch (IOException exception) {
-            System.out.println("Error writing to Server: " + exception.getMessage());
-        }
+    private void writeToClient(Socket clientSocket, String message) throws IOException{
+        OutputStream output = clientSocket.getOutputStream();
+        PrintWriter writer = new PrintWriter(output, true);
+        writer.println(message);
+    }
+
+    private String readFromClient(Socket clientSocket) throws IOException {
+        InputStream input = clientSocket.getInputStream();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+        return reader.readLine();
     }
 
     private void handleClient(Socket socket) throws IOException {
-        Client client = new Client("default-username", socket);
-        addClientToQueue(client);
-        checkForNewGame();
+        Client client = new Client(socket);
+        if (authenticateClient(client)) {
+            writeToClient(client.getSocket(), Communication.AUTH_SUCCESS);
+            addClientToQueue(client);
+            checkForNewGame();
+        } else {
+            writeToClient(socket, "Authentication failed. Disconnecting...");
+            socket.close();
+        }
+    }
+
+    private boolean authenticateClient(Client client) throws IOException{
+        writeToClient(client.getSocket(), Communication.AUTH);
+        String username = readFromClient(client.getSocket());
+        client.setUsername(username);
+
+        writeToClient(client.getSocket(), Communication.PASS);
+        String password = readFromClient(client.getSocket());
+
+        return true;
     }
 
     // Adds a Client to the clientQueue
