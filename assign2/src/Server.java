@@ -26,9 +26,14 @@ public class Server {
     private final List<Game> gameList;
     private final Lock gameList_lock = new ReentrantLock();
 
-    public Server() {
+    // Database
+    private final UserDatabase userDatabase;
+    private final Lock userDatabase_lock = new ReentrantLock();
+
+    public Server() throws IOException{
         this.clientQueue = new ArrayList<Client>();
         this.gameList = new ArrayList<Game>();
+        this.userDatabase = new UserDatabase();
         executor = Executors.newFixedThreadPool(MAX_NUMBER_GAMES);
     }
 
@@ -51,7 +56,7 @@ public class Server {
             addClientToQueue(client);
             checkForNewGame();
         } else {
-            writeToClient(socket, "Authentication failed. Disconnecting...");
+            writeToClient(socket, Communication.AUTH_FAIL);
             socket.close();
         }
     }
@@ -64,7 +69,11 @@ public class Server {
         writeToClient(client.getSocket(), Communication.PASS);
         String password = readFromClient(client.getSocket());
 
-        return true;
+        userDatabase_lock.lock();
+        boolean authSuccess = userDatabase.authenticate(username, password) == true;
+        userDatabase_lock.unlock();
+
+        return authSuccess;
     }
 
     // Adds a Client to the clientQueue
