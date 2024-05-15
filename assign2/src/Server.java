@@ -35,6 +35,7 @@ public class Server {
         this.gameList = new ArrayList<Game>();
         this.userDatabase = new UserDatabase();
         executor = Executors.newFixedThreadPool(MAX_NUMBER_GAMES);
+        schedulePing();
     }
 
     private void writeToClient(Socket clientSocket, String message) throws IOException{
@@ -117,10 +118,22 @@ public class Server {
 
     // Ping all clients in Queue
     private void pingAllClients() throws IOException{
+        clientQueue_lock.lock();
         for (Client client : clientQueue) {
             pingClient(client);
         }
+        clientQueue_lock.unlock();
     } 
+
+    private void schedulePing() throws IOException {
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                pingAllClients();
+            } catch (IOException e) {
+                System.out.println("Failed to ping clients: " + e.getMessage());
+            }
+        }, 0, 5, TimeUnit.SECONDS);
+    }
 
     public static void main(String[] args) {
         if (args.length < 1) return;
