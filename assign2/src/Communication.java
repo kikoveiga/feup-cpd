@@ -7,4 +7,8 @@ public class Communication {
     public static final String AUTH_SUCCESS = "AUTH_SUCCESS";
     // Server informs about failed authentication
     public static final String AUTH_FAIL = "AUTH_FAIL";
+    // Ping
+    public static final String PING = "PING";
+    // Pong (Answer to Ping)
+    public static final String PONG = "PONG";
 }

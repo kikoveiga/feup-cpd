@@ -62,6 +62,8 @@ public class Server {
             writeToClient(socket, Communication.AUTH_FAIL);
             socket.close();
         }
+
+        pingAllClients();
     }
 
     private boolean authenticateClient(Client client) throws IOException{
@@ -108,44 +110,17 @@ public class Server {
         clientQueue.clear();
     }
 
-    // private void removePlayerFromGame(Socket socket) {
-    //     for (Game game : ongoingGames) {
-    //         if (game.getPlayerSockets().contains(socket)) {
-    //             System.out.println("A player disconnected.");
-    //             game.removePlayer(socket);
-    //         }
-    //     }
-    // }
-    
-    // monitor the socket's input stream. 
-    // When the socket is disconnected, it will catch an IOException.
-    // private void monitorSocket(Socket socket) {
-    //     executor.execute(() -> {
-    //         try {
-    //             InputStream input = socket.getInputStream();
-    //             while (input.read() != -1) {
-    //                 // Keep reading to detect socket disconnection
-    //             }
-    //         } catch (IOException e) {
-    //             // Socket is disconnected
-    //             System.out.println("A player disconnected 2.");
-    //             removePlayerFromGame(socket);
-    //         }
-    //     });
-    // }
+    // Pings client
+    private void pingClient(Client client) throws IOException{
+        writeToClient(client.getSocket(), Communication.PING);
+    }
 
-    // private void pingClients() {
-    //     scheduler.scheduleAtFixedRate(() -> {
-    //         long currentTime = System.currentTimeMillis();
-    //         for (Socket socket : clientLastPingTime.keySet()) {
-    //             if (currentTime - clientLastPingTime.get(socket) > 5000) { // 5 seconds timeout
-    //                 removePlayerFromGame(socket);
-    //             } else {
-    //                 writeToClient(socket, "PING");
-    //             }
-    //         }
-    //     }, 0, 5, TimeUnit.SECONDS); // Ping every 5 seconds
-    // }
+    // Ping all clients in Queue
+    private void pingAllClients() throws IOException{
+        for (Client client : clientQueue) {
+            pingClient(client);
+        }
+    } 
 
     public static void main(String[] args) {
         if (args.length < 1) return;
