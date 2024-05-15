@@ -51,11 +51,14 @@ public class Server {
 
     private void handleClient(Socket socket) throws IOException {
         Client client = new Client(socket);
+        System.out.println("[AUTH] A Client is authenticating");
         if (authenticateClient(client)) {
+            System.out.println("[AUTH] " + client.getUsername() + " authenticated successfully");
             writeToClient(client.getSocket(), Communication.AUTH_SUCCESS);
             addClientToQueue(client);
             checkForNewGame();
         } else {
+            System.out.println("[AUTH] " + client.getUsername() + " failed authentication");
             writeToClient(socket, Communication.AUTH_FAIL);
             socket.close();
         }
@@ -80,7 +83,7 @@ public class Server {
     private void addClientToQueue(Client client) {
         clientQueue_lock.lock();
         clientQueue.add(client);
-        String log = String.format("Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
+        String log = String.format("[QUEUE] Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
         System.out.println(log);
         clientQueue_lock.unlock();
     }
