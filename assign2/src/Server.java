@@ -1,11 +1,13 @@
 import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -29,6 +31,9 @@ public class Server {
     // Database
     private final UserDatabase userDatabase;
     private final Lock userDatabase_lock = new ReentrantLock();
+
+    // Heartbeat Ping
+    private final int PING_INTERVAL = 3;
 
     public Server() throws IOException{
         this.clientQueue = new ArrayList<Client>();
@@ -112,18 +117,50 @@ public class Server {
     }
 
     // Pings client
-    private void pingClient(Client client) throws IOException{
+    private boolean pingClient(Client client) throws IOException {
         writeToClient(client.getSocket(), Communication.PING);
+
+        ExecutorService pingExecutor = Executors.newSingleThreadExecutor();
+        Future<Boolean> future = pingExecutor.submit(() -> {
+            try {
+                String response = readFromClient(client.getSocket());
+                if (response.equals(Communication.PONG)) {
+                    client.setLastResponseTime();
+                    return true;
+                }
+            } catch (IOException e) {
+                // Ignore, we'll handle the client removal below
+            }
+            return false;
+        });
+
+        try {
+            return future.get(2, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            return false;
+        } finally {
+            pingExecutor.shutdown();
+        }
     }
 
     // Ping all clients in Queue
-    private void pingAllClients() throws IOException{
+    private void pingAllClients() throws IOException {
         clientQueue_lock.lock();
-        for (Client client : clientQueue) {
-            pingClient(client);
+        try {
+            Iterator<Client> iterator = clientQueue.iterator();
+            while (iterator.hasNext()) {
+                Client client = iterator.next();
+                if (!pingClient(client)) {
+                    iterator.remove();
+                    String log = String.format("[QUEUE] Client %s disconnected (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
+                    System.out.println(log);
+                    client.getSocket().close();
+                }
+            }
+        } finally {
+            clientQueue_lock.unlock();
         }
-        clientQueue_lock.unlock();
-    } 
+    }
 
     private void schedulePing() throws IOException {
         scheduler.scheduleAtFixedRate(() -> {
@@ -132,7 +169,7 @@ public class Server {
             } catch (IOException e) {
                 System.out.println("Failed to ping clients: " + e.getMessage());
             }
-        }, 0, 5, TimeUnit.SECONDS);
+        }, 0, PING_INTERVAL, TimeUnit.SECONDS);
     }
 
     public static void main(String[] args) {

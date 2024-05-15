@@ -6,6 +6,7 @@ public class Client {
 
     private String username;
     private Socket socket;
+    private long lastResponseTime;
     private BufferedReader consoleReader;
     private BufferedReader serverReader;
     private PrintWriter serverWriter;
@@ -27,6 +28,14 @@ public class Client {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public long getLastResponseTime() {
+        return lastResponseTime;
+    }
+
+    public void setLastResponseTime() {
+        this.lastResponseTime = System.currentTimeMillis();
     }
 
     private void sendMessageToServer(String message) {
