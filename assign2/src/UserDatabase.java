@@ -51,7 +51,7 @@ public class UserDatabase {
 
     public int getUserRank(String username) {
         User user = users.get(username);
-        return user != null ? user.getScore() : -1; // Return -1 if user is not found
+        return user != null ? user.getRank() : -1; // Return -1 if user is not found
     }
 
     public static class User {

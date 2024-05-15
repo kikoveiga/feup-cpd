@@ -95,19 +95,38 @@ public class Server {
     // Adds a Client to the clientQueue
     private void addClientToQueue(Client client) {
         clientQueue_lock.lock();
-        clientQueue.add(client);
-        String log = String.format("[QUEUE] Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
-        System.out.println(log);
-        clientQueue_lock.unlock();
+        try {
+            int i = 0;
+            while (i < clientQueue.size() && userDatabase.getUserRank(clientQueue.get(i).getUsername()) <= userDatabase.getUserRank(client.getUsername())) {
+                i++;
+            }
+            clientQueue.add(i, client);
+            String log = String.format("[QUEUE] Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
+            System.out.println(log);
+        } finally {
+            clientQueue_lock.unlock();
+        }
     }
 
     // Checks if a new Game should start
     private void checkForNewGame() {
         clientQueue_lock.lock();
-        if (clientQueue.size() == PLAYERS_PER_GAME) {
-            startNewGame(clientQueue);
+        try {
+            if (clientQueue.size() >= PLAYERS_PER_GAME) {
+                List<Client> playerList = new ArrayList<>();
+                int rankSum = 0;
+                for (int i = 0; i < PLAYERS_PER_GAME; i++) {
+                    playerList.add(clientQueue.remove(0));
+                    System.out.printf("User with rank:%d\n", userDatabase.getUserRank(playerList.get(i).getUsername()));
+                    rankSum += userDatabase.getUserRank(playerList.get(i).getUsername());
+                }
+                int averageRank = rankSum / PLAYERS_PER_GAME;
+                System.out.printf("[MATCHMAKING] Formed a game with average rank %d\n", averageRank);
+                startNewGame(playerList);
+            }
+        } finally {
+            clientQueue_lock.unlock();
         }
-        clientQueue_lock.unlock();
     }
 
     // Starts a new game with players (Clients) in playerList

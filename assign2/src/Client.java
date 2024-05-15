@@ -6,7 +6,6 @@ public class Client {
 
     private String username;
     private Socket socket;
-    private int rank; 
     private long lastResponseTime;
     private BufferedReader consoleReader;
     private BufferedReader serverReader;
