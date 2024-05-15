@@ -6,6 +6,7 @@ public class Client {
 
     private String username;
     private Socket socket;
+    private int rank; 
 
     public Client(Socket socket) {
         this.socket = socket;
