@@ -228,20 +228,25 @@ public class Server {
         }, 0, PING_INTERVAL, TimeUnit.SECONDS);
     }
 
+    // Choose Mode, Simple or Ranked
     private static int chooseGameMode() {
-        // Choose Mode, Simple or Ranked
         try (Scanner scanner = new Scanner(System.in)) {
             while (true) {
                 System.out.print("Choose Type of Mode Simple(0) or Ranked(1): ");
-                int modeChoice = scanner.nextInt();
-                if (modeChoice == 0) {
-                    System.out.println("Simple Mode Selected");
-                    return 0;
-                } else if (modeChoice == 1) {
-                    System.out.println("Ranked Mode Selected");
-                    return 1;
+                if (scanner.hasNextInt()) {
+                    int modeChoice = scanner.nextInt();
+                    if (modeChoice == 0) {
+                        System.out.println("Simple Mode Selected");
+                        return 0;
+                    } else if (modeChoice == 1) {
+                        System.out.println("Ranked Mode Selected");
+                        return 1;
+                    } else {
+                        System.out.println("Invalid Mode Selected. Please enter 0 for Simple or 1 for Ranked.");
+                    }
                 } else {
-                    System.out.println("Invalid Mode Selected");
+                    System.out.println("Invalid input. Please enter a number (0 or 1).");
+                    scanner.next(); // Consume the invalid input
                 }
             }
         }
