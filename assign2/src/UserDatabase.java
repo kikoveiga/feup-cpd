@@ -48,16 +48,14 @@ public class UserDatabase {
 
     public static class User {
         private String password;
-        private int score;
         private int rank;
 
 
         public User() {
         }
 
-        public User(String password, int score, int rank) {
+        public User(String password, int rank) {
             this.password = password;
-            this.score = score;
             this.rank = rank;
         }
 

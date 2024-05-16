@@ -12,7 +12,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Server {
-
     private final ExecutorService executor;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     
@@ -35,10 +34,18 @@ public class Server {
     // Heartbeat Ping
     private final int PING_INTERVAL = 3;
 
-    public Server() throws IOException{
+    // Mode
+    private final int gameMode;
+
+    // Ranked Mode
+    private final int MATCHMAKING_MAX_DIFF = 100;
+
+
+    public Server(int gameMode) throws IOException{
         this.clientQueue = new ArrayList<Client>();
         this.gameList = new ArrayList<Game>();
         this.userDatabase = new UserDatabase();
+        this.gameMode = gameMode;
         executor = Executors.newFixedThreadPool(MAX_NUMBER_GAMES);
         schedulePing();
     }
@@ -86,6 +93,7 @@ public class Server {
         // get the rank of current user
         if (authSuccess){
             int userRank = userDatabase.getUserRank(username);
+            client.setRank(userRank);
         }
         userDatabase_lock.unlock();
 
@@ -93,40 +101,64 @@ public class Server {
     }
 
     // Adds a Client to the clientQueue
-    private void addClientToQueue(Client client) {
+    private void addClientToQueue(Client client) throws IOException{
         clientQueue_lock.lock();
-        try {
-            int i = 0;
-            while (i < clientQueue.size() && userDatabase.getUserRank(clientQueue.get(i).getUsername()) <= userDatabase.getUserRank(client.getUsername())) {
-                i++;
-            }
-            clientQueue.add(i, client);
-            String log = String.format("[QUEUE] Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
-            System.out.println(log);
-        } finally {
-            clientQueue_lock.unlock();
-        }
+        clientQueue.add(client);
+        String log = String.format("[QUEUE] Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
+        System.out.println(log);
+        clientQueue_lock.unlock();
     }
 
     // Checks if a new Game should start
     private void checkForNewGame() {
         clientQueue_lock.lock();
-        try {
-            if (clientQueue.size() >= PLAYERS_PER_GAME) {
-                List<Client> playerList = new ArrayList<>();
-                int rankSum = 0;
-                for (int i = 0; i < PLAYERS_PER_GAME; i++) {
-                    playerList.add(clientQueue.remove(0));
-                    System.out.printf("User with rank:%d\n", userDatabase.getUserRank(playerList.get(i).getUsername()));
-                    rankSum += userDatabase.getUserRank(playerList.get(i).getUsername());
-                }
-                int averageRank = rankSum / PLAYERS_PER_GAME;
-                System.out.printf("[MATCHMAKING] Formed a game with average rank %d\n", averageRank);
-                startNewGame(playerList);
+        if (clientQueue.size() >= PLAYERS_PER_GAME) {
+            switch (gameMode) {
+                // Unranked
+                case 0:
+                    startNewGame(clientQueue);     
+                    clientQueue.clear();
+                // Ranked
+                case 1:
+                    List<Client> playerList = getPlayerListRanked();
+                    if (playerList != null) {
+                        removeClientsFromQueue(playerList);
+                        startNewGame(playerList);
+                    }
             }
-        } finally {
-            clientQueue_lock.unlock();
         }
+        clientQueue_lock.unlock();
+    }
+
+    // Removes clientsToRemove from Queue
+    private void removeClientsFromQueue(List<Client> clientsToRemove) {
+        for (Client client : clientsToRemove) {
+            clientQueue.remove(client);
+        }
+    }
+
+    // Funtion that returns the list of players to start a ranked game with close rank
+    private List<Client> getPlayerListRanked() {
+        List<Client> playerList = new ArrayList<Client>();
+        
+        for (int i1 = 0; i1 < clientQueue.size(); i1++) {
+            playerList.clear();
+            int rankFirst = clientQueue.get(i1).getRank();
+            playerList.add(clientQueue.get(i1));
+            for (int i2 = i1 + 1; i2 < clientQueue.size(); i2++) {
+                int rankSecond = clientQueue.get(i2).getRank();
+
+                if (Math.abs(rankFirst - rankSecond) <= MATCHMAKING_MAX_DIFF) {
+                    playerList.add(clientQueue.get(i2));
+                }
+
+                if (playerList.size() == PLAYERS_PER_GAME) {
+                    return playerList;
+                }
+            }
+        }
+
+        return null;
     }
 
     // Starts a new game with players (Clients) in playerList
@@ -199,13 +231,29 @@ public class Server {
     public static void main(String[] args) {
         if (args.length < 1) return;
 
+        // Choose Mode, Simple or Ranked
+        int gameMode;
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Choose Type of Mode Simple(0) or Ranked(1):");
+        int modeChoice = scanner.nextInt();
+        if (modeChoice == 0) {
+            System.out.println("Simple Mode Selected");
+            gameMode = 0;
+        } else if (modeChoice == 1) {
+            System.out.println("Ranked Mode Selected");
+            gameMode = 1;
+        } else {
+            System.out.println("Invalid Mode Selected");
+            return;
+        }
+
         int port = Integer.parseInt(args[0]);
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
 
             System.out.println("Server is listening on port " + port);
 
-            Server server = new Server();
+            Server server = new Server(gameMode);
             // server.pingClients();
 
             while (true) {

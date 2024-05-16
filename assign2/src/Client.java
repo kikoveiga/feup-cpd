@@ -5,6 +5,7 @@ import java.net.UnknownHostException;
 public class Client {
 
     private String username;
+    private int rank;
     private Socket socket;
     private long lastResponseTime;
     private BufferedReader consoleReader;
@@ -27,8 +28,16 @@ public class Client {
         return this.socket;
     }
 
+    public int getRank() {
+        return this.rank;
+    }
+
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public void setRank(int rank) {
+        this.rank = rank;
     }
 
     public long getLastResponseTime() {
