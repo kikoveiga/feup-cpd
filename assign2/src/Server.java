@@ -297,6 +297,7 @@ public class Server {
     private void scheduleMatchmakingRelax() throws IOException {
         scheduler.scheduleAtFixedRate(() -> {
             relaxMatchmaking();
+            checkForNewGame();
         }, RELAX_MATCHMAKING_INTERVAL, RELAX_MATCHMAKING_INTERVAL, TimeUnit.SECONDS);
     }
 
