@@ -91,6 +91,8 @@ public class Client {
             handleAuthentication(serverMessage);
         } else if (serverMessage.startsWith(Communication.TOKEN)) {
             storeToken(getMessageContent(serverMessage));
+        } else if (serverMessage.equals(Communication.WELCOME)) {
+            handleServerWelcome();
         }
         else {
             System.out.println(serverMessage);
@@ -129,6 +131,26 @@ public class Client {
             System.out.println("Token stored successfully.");
         } catch (IOException e) {
             System.out.println("Error storing token: " + e.getMessage());
+        }
+    }
+
+    private void handleServerWelcome() throws IOException{
+        System.out.println("1. Log In");
+        System.out.println("2. Reconnect");
+        System.out.print("Select: ");
+        String answer = consoleReader.readLine();
+
+        switch (answer) {
+            case "1":
+                sendMessageToServer(Communication.CLIENT_AUTH);
+                break;
+
+            case "2":
+                sendMessageToServer(Communication.CLIENT_RECONNECT);
+                break;
+        
+            default:
+                break;
         }
     }
 

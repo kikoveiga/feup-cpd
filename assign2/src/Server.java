@@ -79,7 +79,34 @@ public class Server {
 
     private void handleClient(Socket socket) throws IOException {
         Client client = new Client(socket);
-        System.out.println("[AUTH] A Client is authenticating");
+        String clientAction = questionClient(client);
+
+        switch (clientAction) {
+            case Communication.CLIENT_AUTH:
+                System.out.println("[AUTH] A Client is authenticating");
+                handleClientAuthentication(client);
+                break;
+
+            case Communication.CLIENT_RECONNECT:
+                System.out.println("[RECONNECT] A Client is reconnecting with token");
+                // handleClientReconnection(client);
+                break;
+        
+            default:
+                break;
+        }
+    }
+
+    // Questions client what he wants to do and returns desired mode
+    // 1. Log In
+    // 2. Reconnect with Token
+    private String questionClient(Client client) throws IOException{
+        writeToClient(client.getSocket(), Communication.WELCOME);
+        String answer = readFromClient(client.getSocket());
+        return answer;
+    }
+
+    private void handleClientAuthentication(Client client) throws IOException{
         if (authenticateClient(client)) {
             System.out.println("[AUTH] " + client.getUsername() + " authenticated successfully");
             writeToClient(client.getSocket(), Communication.AUTH_SUCCESS);
@@ -88,8 +115,8 @@ public class Server {
             checkForNewGame();
         } else {
             System.out.println("[AUTH] " + client.getUsername() + " failed authentication");
-            writeToClient(socket, Communication.AUTH_FAIL);
-            socket.close();
+            writeToClient(client.getSocket(), Communication.AUTH_FAIL);
+            client.getSocket().close();
         }
     }
 
