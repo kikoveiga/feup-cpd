@@ -50,6 +50,12 @@ public class Server {
     // Ammount of Rank to relax (add to MATCHMAKING_MAX_DIFF)
     private int MATCHMAKING_RELAX = 100;
 
+     // - Session Tokens -
+    // Connection counter used to create session tokens
+    // It ensures that there are no duplicate tokens
+    private int CONNECTION_COUNTER = 0;
+    private Lock connectionCounter_lock = new ReentrantLock();
+
     public Server(int gameMode) throws IOException{
         this.clientQueue = new ArrayList<Client>();
         this.gameList = new ArrayList<Game>();
@@ -83,6 +89,7 @@ public class Server {
         if (authenticateClient(client)) {
             System.out.println("[AUTH] " + client.getUsername() + " authenticated successfully");
             writeToClient(client.getSocket(), Communication.AUTH_SUCCESS);
+            increaseConnectionCounter();
             addClientToQueue(client);
             checkForNewGame();
         } else {
@@ -299,6 +306,19 @@ public class Server {
             relaxMatchmaking();
             checkForNewGame();
         }, RELAX_MATCHMAKING_INTERVAL, RELAX_MATCHMAKING_INTERVAL, TimeUnit.SECONDS);
+    }
+
+       // Increases the CONNECTION_COUNTER by 1
+       private void increaseConnectionCounter() {
+        connectionCounter_lock.lock();
+        CONNECTION_COUNTER += 1;
+        connectionCounter_lock.unlock();
+    }
+
+    // Generates session token String
+    // NOTE -> lock should be activated before this function is called
+    private String generateToken() {
+        return "session-token-" + CONNECTION_COUNTER;
     }
 
     public static void main(String[] args) {
