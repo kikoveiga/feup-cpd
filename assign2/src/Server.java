@@ -34,7 +34,7 @@ public class Server {
     // Heartbeat Ping
     private final int PING_INTERVAL = 3;
 
-    // Mode
+    // Game Mode : 0 -> Simple , 1 -> Ranked
     private final int gameMode;
 
     // Ranked Mode
@@ -75,8 +75,6 @@ public class Server {
             writeToClient(socket, Communication.AUTH_FAIL);
             socket.close();
         }
-
-        pingAllClients();
     }
 
     private boolean authenticateClient(Client client) throws IOException{
