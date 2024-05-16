@@ -89,7 +89,7 @@ public class Server {
 
             case Communication.CLIENT_RECONNECT:
                 System.out.println("[RECONNECT] A Client is reconnecting with token");
-                // handleClientReconnection(client);
+                handleClientReconnection(client);
                 break;
         
             default:
@@ -336,6 +336,33 @@ public class Server {
             userDatabase.assignSessionToken(client.getUsername());
             String sessionToken = userDatabase.getSessionToken(client.getUsername());
             writeToClient(client.getSocket(), Communication.TOKEN + " " + sessionToken);
+        } finally {
+            userDatabase_lock.unlock();
+        }
+    }
+
+    // Handles Client reconnection with token
+    private void handleClientReconnection(Client client) throws IOException {
+
+        if (reconnectClient(client)) {
+            // just add to the end of the queue for now
+            addClientToQueue(client);
+        } else {
+            System.out.println("[RECONNECT] " + client.getUsername() + " reconnection failed");
+            client.getSocket().close();
+        }
+    }
+
+    // Checks if Client reconnection is valid
+    private boolean reconnectClient(Client client) throws IOException {
+        writeToClient(client.getSocket(), Communication.REQUEST_TOKEN);
+        String providedToken = readFromClient(client.getSocket());
+
+        userDatabase_lock.lock();
+
+        try {
+            String clientToken = userDatabase.getSessionToken(client.getUsername());
+            return clientToken.equals(providedToken);
         } finally {
             userDatabase_lock.unlock();
         }

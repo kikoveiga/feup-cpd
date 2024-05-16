@@ -23,4 +23,6 @@ public class Communication {
     public static final String PONG = "PONG";
     // Send client its Session Token
     public static final String TOKEN = "TOKEN";
+    // Request session token
+    public static final String REQUEST_TOKEN = "REQUEST_TOKEN";
 }
