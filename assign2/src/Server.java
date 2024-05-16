@@ -362,7 +362,11 @@ public class Server {
 
         try {
             String clientToken = userDatabase.getSessionToken(client.getUsername());
-            return clientToken.equals(providedToken);
+            System.out.println(providedToken + clientToken);
+            if (clientToken != null) {
+                return clientToken.equals(providedToken);
+            }
+            return false;
         } finally {
             userDatabase_lock.unlock();
         }

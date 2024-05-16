@@ -94,7 +94,7 @@ public class Client {
         } else if (serverMessage.equals(Communication.WELCOME)) {
             handleServerWelcome();
         } else if (serverMessage.equals(Communication.REQUEST_TOKEN)) {
-            sendMessageToServer(Communication.TOKEN + " " + retrieveToken());
+            sendMessageToServer(retrieveToken());
         }
         else {
             System.out.println(serverMessage);
@@ -139,7 +139,8 @@ public class Client {
     // Gets the token from the Client's 'system'
     private String retrieveToken() {
         try {
-            String filename = "token-" + this.username + ".txt";
+            System.out.print("Token filename: ");
+            String filename = consoleReader.readLine();
             File file = new File("src/database/tokens/" + filename);
             BufferedReader reader = new BufferedReader(new FileReader(file));
             String line = reader.readLine();
