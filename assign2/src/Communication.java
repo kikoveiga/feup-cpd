@@ -15,4 +15,6 @@ public class Communication {
     public static final String PING = "PING";
     // Pong (Answer to Ping)
     public static final String PONG = "PONG";
+    // Send client its Session Token
+    public static final String TOKEN = "TOKEN";
 }

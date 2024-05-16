@@ -50,12 +50,6 @@ public class Server {
     // Ammount of Rank to relax (add to MATCHMAKING_MAX_DIFF)
     private int MATCHMAKING_RELAX = 100;
 
-    // - Session Tokens -
-    // Connection counter used to create session tokens
-    // It ensures that there are no duplicate tokens
-    private int CONNECTION_COUNTER = 0;
-    private Lock connectionCounter_lock = new ReentrantLock();
-
     public Server(int gameMode) throws IOException{
         this.clientQueue = new ArrayList<Client>();
         this.gameList = new ArrayList<Game>();
@@ -89,7 +83,7 @@ public class Server {
         if (authenticateClient(client)) {
             System.out.println("[AUTH] " + client.getUsername() + " authenticated successfully");
             writeToClient(client.getSocket(), Communication.AUTH_SUCCESS);
-            increaseConnectionCounter();
+            assignToken(client);
             addClientToQueue(client);
             checkForNewGame();
         } else {
@@ -308,24 +302,15 @@ public class Server {
         }, RELAX_MATCHMAKING_INTERVAL, RELAX_MATCHMAKING_INTERVAL, TimeUnit.SECONDS);
     }
 
-    // Increases the CONNECTION_COUNTER by 1
-    private void increaseConnectionCounter() {
-        connectionCounter_lock.lock();
+    // Assigns a token to a client
+    private void assignToken(Client client) throws IOException {
+        userDatabase_lock.lock();
         try {
-            CONNECTION_COUNTER += 1;
+            userDatabase.assignSessionToken(client.getUsername());
+            String sessionToken = userDatabase.getSessionToken(client.getUsername());
+            writeToClient(client.getSocket(), Communication.TOKEN + " " + sessionToken);
         } finally {
-            connectionCounter_lock.unlock();
-        }
-    }
-
-    // Generates session token String
-    private String generateToken() {
-        connectionCounter_lock.lock();
-        try {
-            int tokenId = CONNECTION_COUNTER;
-            return "session-token-" + String.valueOf(tokenId);
-        } finally {
-            connectionCounter_lock.unlock();
+            userDatabase_lock.unlock();
         }
     }
 

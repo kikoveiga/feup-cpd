@@ -66,6 +66,7 @@ public class Client {
             case Communication.AUTH:
                 System.out.print("Username: ");
                 String username = consoleReader.readLine();
+                setUsername(username);
                 sendMessageToServer(username);
                 break;
             case Communication.PASS:
@@ -88,7 +89,10 @@ public class Client {
             sendMessageToServer(Communication.PONG);
         } else if (Communication.AUTH_MESSAGES.contains(serverMessage)) {
             handleAuthentication(serverMessage);
-        } else {
+        } else if (serverMessage.startsWith(Communication.TOKEN)) {
+            storeToken(getMessageContent(serverMessage));
+        }
+        else {
             System.out.println(serverMessage);
         }
     }
@@ -97,6 +101,34 @@ public class Client {
         String serverMessage;
         while ((serverMessage = serverReader.readLine()) != null) {
             handleServerMessage(serverMessage);
+        }
+    }
+
+    // Example : "PROTOCOL CONTENT"
+    // retrieves CONTENT
+    private String getMessageContent(String serverMessage) {
+        String[] parts = serverMessage.split(" ");
+        if (parts.length >= 2) {
+            return parts[1];
+        } else {
+            return "";
+        }
+    }
+
+    // Stores the token in a file 
+    // This simulates what would be the Client's system storage
+    private void storeToken(String sessionToken) {
+        try {
+            String filename = "token-" + this.username + ".txt";
+            File file = new File("src/database/tokens/" + filename);
+
+            // Create the file if it doesn't exist
+            FileWriter writer = new FileWriter(file, false);
+            writer.write(sessionToken);
+            writer.close();
+            System.out.println("Token stored successfully.");
+        } catch (IOException e) {
+            System.out.println("Error storing token: " + e.getMessage());
         }
     }
 
