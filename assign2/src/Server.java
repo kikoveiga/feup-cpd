@@ -233,20 +233,20 @@ public class Server {
 
         // Choose Mode, Simple or Ranked
         int gameMode;
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Choose Type of Mode Simple(0) or Ranked(1):");
-        int modeChoice = scanner.nextInt();
-        if (modeChoice == 0) {
-            System.out.println("Simple Mode Selected");
-            gameMode = 0;
-        } else if (modeChoice == 1) {
-            System.out.println("Ranked Mode Selected");
-            gameMode = 1;
-        } else {
-            System.out.println("Invalid Mode Selected");
-            return;
+        try (Scanner scanner = new Scanner(System.in)) {
+            System.out.print("Choose Type of Mode Simple(0) or Ranked(1): ");
+            int modeChoice = scanner.nextInt();
+            if (modeChoice == 0) {
+                System.out.println("Simple Mode Selected");
+                gameMode = 0;
+            } else if (modeChoice == 1) {
+                System.out.println("Ranked Mode Selected");
+                gameMode = 1;
+            } else {
+                System.out.println("Invalid Mode Selected");
+                return;
+            }
         }
-
         int port = Integer.parseInt(args[0]);
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
