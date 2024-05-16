@@ -177,6 +177,20 @@ public class Server {
         }, 0, PING_INTERVAL, TimeUnit.SECONDS);
     }
 
+    private void notifyClientPosition(Client client, int position) throws IOException {
+        String message = "Your queue position: " + String.valueOf(position);
+        writeToClient(client.getSocket(), message);
+    }
+
+    // Notifies all clients of their Queue position
+    private void notifyAllClientsPositions() throws IOException {
+        clientQueue_lock.lock();
+        for (int i = 0; i < clientQueue.size(); i++) {
+            notifyClientPosition(clientQueue.get(i), i);
+        }
+        clientQueue_lock.unlock();
+    }
+
     public static void main(String[] args) {
         if (args.length < 1) return;
 
