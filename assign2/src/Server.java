@@ -308,17 +308,25 @@ public class Server {
         }, RELAX_MATCHMAKING_INTERVAL, RELAX_MATCHMAKING_INTERVAL, TimeUnit.SECONDS);
     }
 
-       // Increases the CONNECTION_COUNTER by 1
-       private void increaseConnectionCounter() {
+    // Increases the CONNECTION_COUNTER by 1
+    private void increaseConnectionCounter() {
         connectionCounter_lock.lock();
-        CONNECTION_COUNTER += 1;
-        connectionCounter_lock.unlock();
+        try {
+            CONNECTION_COUNTER += 1;
+        } finally {
+            connectionCounter_lock.unlock();
+        }
     }
 
     // Generates session token String
-    // NOTE -> lock should be activated before this function is called
     private String generateToken() {
-        return "session-token-" + CONNECTION_COUNTER;
+        connectionCounter_lock.lock();
+        try {
+            int tokenId = CONNECTION_COUNTER;
+            return "session-token-" + String.valueOf(tokenId);
+        } finally {
+            connectionCounter_lock.unlock();
+        }
     }
 
     public static void main(String[] args) {
