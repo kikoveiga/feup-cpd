@@ -12,7 +12,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Server {
-
     private final ExecutorService executor;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     
@@ -38,10 +37,18 @@ public class Server {
     // Interval to notify clients of their Queue position
     private final int NOTIFY_QUEUE_POS_INTERVAL = 10;
 
-    public Server() throws IOException{
+    // Game Mode : 0 -> Simple , 1 -> Ranked
+    private final int gameMode;
+
+    // Ranked Mode
+    private final int MATCHMAKING_MAX_DIFF = 100;
+
+
+    public Server(int gameMode) throws IOException{
         this.clientQueue = new ArrayList<Client>();
         this.gameList = new ArrayList<Game>();
         this.userDatabase = new UserDatabase();
+        this.gameMode = gameMode;
         executor = Executors.newFixedThreadPool(MAX_NUMBER_GAMES);
 
         // Schedulers
@@ -74,8 +81,6 @@ public class Server {
             writeToClient(socket, Communication.AUTH_FAIL);
             socket.close();
         }
-
-        pingAllClients();
     }
 
     private boolean authenticateClient(Client client) throws IOException{
@@ -92,6 +97,7 @@ public class Server {
         // get the rank of current user
         if (authSuccess){
             int userRank = userDatabase.getUserRank(username);
+            client.setRank(userRank);
         }
         userDatabase_lock.unlock();
 
@@ -111,10 +117,53 @@ public class Server {
     // Checks if a new Game should start
     private void checkForNewGame() {
         clientQueue_lock.lock();
-        if (clientQueue.size() == PLAYERS_PER_GAME) {
-            startNewGame(clientQueue);
+        if (clientQueue.size() >= PLAYERS_PER_GAME) {
+            switch (gameMode) {
+                // Unranked
+                case 0:
+                    startNewGame(clientQueue);     
+                    clientQueue.clear();
+                // Ranked
+                case 1:
+                    List<Client> playerList = getPlayerListRanked();
+                    if (playerList != null) {
+                        removeClientsFromQueue(playerList);
+                        startNewGame(playerList);
+                    }
+            }
         }
         clientQueue_lock.unlock();
+    }
+
+    // Removes clientsToRemove from Queue
+    private void removeClientsFromQueue(List<Client> clientsToRemove) {
+        for (Client client : clientsToRemove) {
+            clientQueue.remove(client);
+        }
+    }
+
+    // Funtion that returns the list of players to start a ranked game with close rank
+    private List<Client> getPlayerListRanked() {
+        List<Client> playerList = new ArrayList<Client>();
+        
+        for (int i1 = 0; i1 < clientQueue.size(); i1++) {
+            playerList.clear();
+            int rankFirst = clientQueue.get(i1).getRank();
+            playerList.add(clientQueue.get(i1));
+            for (int i2 = i1 + 1; i2 < clientQueue.size(); i2++) {
+                int rankSecond = clientQueue.get(i2).getRank();
+
+                if (Math.abs(rankFirst - rankSecond) <= MATCHMAKING_MAX_DIFF) {
+                    playerList.add(clientQueue.get(i2));
+                }
+
+                if (playerList.size() == PLAYERS_PER_GAME) {
+                    return playerList;
+                }
+            }
+        }
+
+        return null;
     }
 
     // Starts a new game with players (Clients) in playerList
@@ -208,17 +257,43 @@ public class Server {
         }
         clientQueue_lock.unlock();
     }
+    
+    // Choose Mode, Simple or Ranked
+    private static int chooseGameMode() {
+        try (Scanner scanner = new Scanner(System.in)) {
+            while (true) {
+                System.out.print("Choose Type of Mode Simple(0) or Ranked(1): ");
+                if (scanner.hasNextInt()) {
+                    int modeChoice = scanner.nextInt();
+                    if (modeChoice == 0) {
+                        System.out.println("Simple Mode Selected");
+                        return 0;
+                    } else if (modeChoice == 1) {
+                        System.out.println("Ranked Mode Selected");
+                        return 1;
+                    } else {
+                        System.out.println("Invalid Mode Selected. Please enter 0 for Simple or 1 for Ranked.");
+                    }
+                } else {
+                    System.out.println("Invalid input. Please enter a number (0 or 1).");
+                    scanner.next(); // Consume the invalid input
+                }
+            }
+        }
+    }
 
     public static void main(String[] args) {
         if (args.length < 1) return;
 
+        // Choose Mode, Simple or Ranked
+        int gameMode = chooseGameMode();
         int port = Integer.parseInt(args[0]);
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
 
             System.out.println("Server is listening on port " + port);
 
-            Server server = new Server();
+            Server server = new Server(gameMode);
             // server.pingClients();
 
             while (true) {
