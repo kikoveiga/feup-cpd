@@ -11,6 +11,7 @@ public class Client {
     private BufferedReader consoleReader;
     private BufferedReader serverReader;
     private PrintWriter serverWriter;
+    private String sessionToken;
 
 
     public Client(Socket socket) throws IOException {
@@ -38,6 +39,14 @@ public class Client {
 
     public void setRank(int rank) {
         this.rank = rank;
+    }
+
+    public void setSessionToken(String sessionToken) {
+        this.sessionToken = sessionToken;
+    }
+
+    public void clearSessionToken() {
+        this.sessionToken = "";
     }
 
     public long getLastResponseTime() {

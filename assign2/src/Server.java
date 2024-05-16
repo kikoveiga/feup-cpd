@@ -50,7 +50,7 @@ public class Server {
     // Ammount of Rank to relax (add to MATCHMAKING_MAX_DIFF)
     private int MATCHMAKING_RELAX = 100;
 
-     // - Session Tokens -
+    // - Session Tokens -
     // Connection counter used to create session tokens
     // It ensures that there are no duplicate tokens
     private int CONNECTION_COUNTER = 0;
