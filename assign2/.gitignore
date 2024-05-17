@@ -2,4 +2,5 @@
 **/*.class
 /assign2.iml
 /java
-/src/database/**
+/src/database/users.json
+/src/database/tokens
