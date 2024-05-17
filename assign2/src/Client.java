@@ -137,7 +137,7 @@ public class Client {
     }
 
     // Gets the token from the Client's 'system'
-    private String retrieveToken() {
+    private String retrieveToken() throws IOException {
         try {
             System.out.print("Token filename: ");
             String filename = consoleReader.readLine();
@@ -147,7 +147,9 @@ public class Client {
             reader.close();
             return line;
         } catch (IOException e) {
-            System.out.println("Error retrieving token: " + e.getMessage());
+            System.out.println("Your session token is invalid");
+            System.out.println("Disconnecting...");
+            this.socket.close();
             return null;
         }
     }

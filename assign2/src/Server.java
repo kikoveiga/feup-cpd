@@ -348,7 +348,7 @@ public class Server {
             // just add to the end of the queue for now
             addClientToQueue(client);
         } else {
-            System.out.println("[RECONNECT] " + client.getUsername() + " reconnection failed");
+            System.out.println("[RECONNECT] Cient reconnection failed");
             client.getSocket().close();
         }
     }
@@ -364,6 +364,7 @@ public class Server {
             String clientUsername = userDatabase.getUsernameFromToken(providedToken);
             if (clientUsername != null) {
                 client.setUsername(clientUsername);
+                System.out.println("[RECONENCT] " + clientUsername + " reconnected with token");
                 return true;
             }
             return false;
