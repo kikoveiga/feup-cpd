@@ -50,6 +50,10 @@ public class Server {
     // Ammount of Rank to relax (add to MATCHMAKING_MAX_DIFF)
     private int MATCHMAKING_RELAX = 100;
 
+    // {username : position}
+    // Stores the client's queue position when he disconnects
+    private Map<String, Integer> reconnectPosition;
+
     public Server(int gameMode) throws IOException{
         this.clientQueue = new ArrayList<Client>();
         this.gameList = new ArrayList<Game>();
@@ -63,6 +67,8 @@ public class Server {
         if (this.gameMode == RANKED) {
             scheduleMatchmakingRelax();
         }
+
+        this.reconnectPosition = new HashMap<String,Integer>();
     }
 
     private void writeToClient(Socket clientSocket, String message) throws IOException{
@@ -247,6 +253,7 @@ public class Server {
             while (iterator.hasNext()) {
                 Client client = iterator.next();
                 if (!pingClient(client)) {
+                    storeQueuePosition(client);
                     iterator.remove();
                     String log = String.format("[QUEUE] Client %s disconnected (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
                     System.out.println(log);
@@ -346,6 +353,9 @@ public class Server {
 
         if (reconnectClient(client)) {
             // just add to the end of the queue for now
+            System.out.println(this.reconnectPosition);
+            int queuePos = this.reconnectPosition.get(client.getUsername());
+            System.out.println("[RECONNECT] clientpos was " + queuePos);
             addClientToQueue(client);
         } else {
             System.out.println("[RECONNECT] Cient reconnection failed");
@@ -370,6 +380,33 @@ public class Server {
             return false;
         } finally {
             userDatabase_lock.unlock();
+        }
+    }
+
+    // Stores the queue position of a Client
+    // This is useful for reconnections
+    private void storeQueuePosition(Client client) {
+        clientQueue_lock.lock();
+        try {
+            String username = client.getUsername();
+            int queuePos = getQueuePosition(client);
+            reconnectPosition.put(username, queuePos);
+        } finally {
+             clientQueue_lock.unlock();
+        }
+    }
+
+    // Gets a Client's queue position
+    // Returns -1 if client is not in the queue
+    private int getQueuePosition(Client client) {
+        clientQueue_lock.lock();
+        try {
+            for (int pos = 0; pos < clientQueue.size(); pos++) {
+                if (clientQueue.get(pos) == client) return pos + 1;
+            }
+            return -1;
+        } finally {
+            clientQueue_lock.unlock();
         }
     }
 
