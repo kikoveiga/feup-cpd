@@ -65,6 +65,17 @@ public class UserDatabase {
         return user != null ? user.getSessionToken() : null;
     }
 
+    // Gets username form a sessionToken
+    // returns null if no user found with that sessionToken
+    public String getUsernameFromToken(String sessionToken) {
+        for (Map.Entry<String, User> entry : users.entrySet()) {
+            if (entry.getValue().getSessionToken().equals(sessionToken)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     public static class User {
         private String password;
         private int rank;

@@ -361,10 +361,10 @@ public class Server {
         userDatabase_lock.lock();
 
         try {
-            String clientToken = userDatabase.getSessionToken(client.getUsername());
-            System.out.println(providedToken + clientToken);
-            if (clientToken != null) {
-                return clientToken.equals(providedToken);
+            String clientUsername = userDatabase.getUsernameFromToken(providedToken);
+            if (clientUsername != null) {
+                client.setUsername(clientUsername);
+                return true;
             }
             return false;
         } finally {
