@@ -5,32 +5,38 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import game_logic.TriviaQuestion;
+import game_logic.TriviaResponse;
+
 
 public class Game {
     private List<Client> playerList;
-    private List<TriviaQuestion> questions;
-
+    private TriviaResponse triviaResponse;
     public Game(List<Client> playerList) {
         this.playerList = playerList;
     }
+
     // method to load questions into data set
     public void loadQuestions(String dataPath){
+        File jsonFile = new File(dataPath);
         ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            String jsonData = new String(Files.readAllBytes(Paths.get(dataPath)));
-            JsonNode rootNode = objectMapper.readTree(jsonData);
-            JsonNode resultsNode = rootNode.path("results");
 
-            for (JsonNode questionNode : resultsNode) {
-                String question = questionNode.path("question").asText();
-                String correctAnswer = questionNode.path("correct_answer").asText();
-                TriviaQuestion triviaQuestion = new TriviaQuestion(question, correctAnswer);
-                questions.add(triviaQuestion);
-            }
+        try {
+            // Read JSON file and map to TriviaResponse
+            TriviaResponse triviaResponse = objectMapper.readValue(jsonFile, new TypeReference<TriviaResponse>() {});
+
+            // Convert List of TriviaResult to List of TriviaQuestion
+            //questions = triviaResponse.getResults().stream()
+                    //.map(result -> new TriviaQuestion(result.getQuestion(), result.getCorrectAnswer()))
+                    //.collect(Collectors.toList());
+
+            // Output to verify
+            triviaResponse.getResults().forEach(q -> System.out.println(q.getQuestion() + " - " + q.getCorrectAnswer()));
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -38,18 +44,13 @@ public class Game {
     public void startGame(){
 
         //test if questions work
-        for (TriviaQuestion q : questions){
-            System.out.println("question");
-            System.out.println(q.getQuestion());
-            System.out.println("answers");
-            System.out.println(q.getCorrectAnswer());
-        }
+
     }
 
     // Broadcast a message to all players
     public void broadcastMessage(String message) {
         for (Client player : playerList) {
-            //player.sendMessage(message);
+            player.(message);
         }
     }
 
