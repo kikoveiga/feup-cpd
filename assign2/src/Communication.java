@@ -22,10 +22,14 @@ public class Communication {
     // Pong (Answer to Ping)
     public static final String PONG = "PONG";
     // Send client its Session Token
+    // Message content -> Session Token
+    // Example -> "TOKEN mytoken123"
     public static final String TOKEN = "TOKEN";
     // Request session token
     public static final String REQUEST_TOKEN = "REQUEST_TOKEN";
     // Inform Client that he reconnected successfully 
+    // Message content -> Reconnection queue position
+    // Example -> "REQUEST_SUCCESS 2"
     public static final String RECONNECT_SUCCESS = "REQUEST_SUCCESS";
     // Inform Client that reconnection was refused
     public static final String RECONNECT_FAIL = "REQUEST_FAIL";
