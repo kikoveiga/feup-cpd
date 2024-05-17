@@ -52,6 +52,7 @@ public class Server {
 
     // {username : position}
     // Stores the client's queue position when he disconnects
+    // This shares the lock with the userDatabase
     private Map<String, Integer> reconnectPosition;
 
     public Server(int gameMode) throws IOException{
@@ -363,7 +364,13 @@ public class Server {
     private void handleClientReconnection(Client client) throws IOException {
 
         if (reconnectClient(client)) {
-            int queuePos = this.reconnectPosition.get(client.getUsername());
+            this.userDatabase_lock.lock();
+            int queuePos;
+            try {
+                queuePos = this.reconnectPosition.get(client.getUsername());
+            } finally {
+                this.userDatabase_lock.unlock();
+            }
             String messageToClient = String.format("%s %d", Communication.RECONNECT_SUCCESS, queuePos);
             writeToClient(client.getSocket(), messageToClient);
             addClientToQueuePos(client, queuePos);
