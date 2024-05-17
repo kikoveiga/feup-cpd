@@ -157,6 +157,17 @@ public class Server {
         clientQueue_lock.unlock();
     }
 
+    // TODO -> refactor this to the previous function
+    // Adds a Client to the clientQueue with specific pos
+    private void addClientToQueuePos(Client client, int queuePos) throws IOException{
+        clientQueue_lock.lock();
+        clientQueue.add(queuePos - 1, client);
+        notifyClientPosition(client, queuePos);
+        String log = String.format("[QUEUE] Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
+        System.out.println(log);
+        clientQueue_lock.unlock();
+    }
+
     // Checks if a new Game should start
     private void checkForNewGame() {
         clientQueue_lock.lock();
@@ -352,11 +363,8 @@ public class Server {
     private void handleClientReconnection(Client client) throws IOException {
 
         if (reconnectClient(client)) {
-            // just add to the end of the queue for now
-            System.out.println(this.reconnectPosition);
             int queuePos = this.reconnectPosition.get(client.getUsername());
-            System.out.println("[RECONNECT] clientpos was " + queuePos);
-            addClientToQueue(client);
+            addClientToQueuePos(client, queuePos);
         } else {
             System.out.println("[RECONNECT] Cient reconnection failed");
             client.getSocket().close();
