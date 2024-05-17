@@ -30,7 +30,7 @@ public class Communication {
     // Inform Client that he reconnected successfully 
     // Message content -> Reconnection queue position
     // Example -> "REQUEST_SUCCESS 2"
-    public static final String RECONNECT_SUCCESS = "REQUEST_SUCCESS";
+    public static final String RECONNECT_SUCCESS = "RECONNECT_SUCCESS";
     // Inform Client that reconnection was refused
-    public static final String RECONNECT_FAIL = "REQUEST_FAIL";
+    public static final String RECONNECT_FAIL = "RECONNECT_FAIL";
 }

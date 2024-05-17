@@ -85,20 +85,13 @@ public class Client {
     }
 
     private void handleServerReconnection(String serverMessage) throws IOException {
-        switch (serverMessage) {
-            case Communication.REQUEST_TOKEN:
-                sendMessageToServer(retrieveToken());
-                break;
-
-            case Communication.RECONNECT_SUCCESS:
-                break;
-
-            case Communication.RECONNECT_FAIL:
-                break;
-        
-            default:
-                break;
-        }
+        if (serverMessage.startsWith(Communication.RECONNECT_SUCCESS)) {
+            String queuePos = getMessageContent(serverMessage);
+            System.out.println("Reconnected with position " + queuePos);
+        } else if (serverMessage.equals(Communication.RECONNECT_FAIL)) {
+            System.out.println("Reconnection failed. Disconnecting...");
+            this.socket.close();
+        } 
     }
 
     private void handleServerMessage(String serverMessage) throws IOException {
@@ -111,6 +104,9 @@ public class Client {
         } else if (serverMessage.equals(Communication.WELCOME)) {
             handleServerWelcome();
         } else if (serverMessage.equals(Communication.REQUEST_TOKEN)) {
+            sendMessageToServer(retrieveToken());
+        }
+        else if (serverMessage.startsWith("RECONNECT")) {
             handleServerReconnection(serverMessage);
         }
         else {

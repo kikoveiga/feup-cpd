@@ -364,9 +364,12 @@ public class Server {
 
         if (reconnectClient(client)) {
             int queuePos = this.reconnectPosition.get(client.getUsername());
+            String messageToClient = String.format("%s %d", Communication.RECONNECT_SUCCESS, queuePos);
+            writeToClient(client.getSocket(), messageToClient);
             addClientToQueuePos(client, queuePos);
         } else {
             System.out.println("[RECONNECT] Cient reconnection failed");
+            writeToClient(client.getSocket(), Communication.RECONNECT_FAIL);
             client.getSocket().close();
         }
     }
@@ -380,7 +383,7 @@ public class Server {
 
         try {
             String clientUsername = userDatabase.getUsernameFromToken(providedToken);
-            if (clientUsername != null) {
+            if (clientUsername != null) { // success
                 client.setUsername(clientUsername);
                 System.out.println("[RECONENCT] " + clientUsername + " reconnected with token");
                 return true;
