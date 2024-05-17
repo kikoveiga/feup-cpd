@@ -25,4 +25,8 @@ public class Communication {
     public static final String TOKEN = "TOKEN";
     // Request session token
     public static final String REQUEST_TOKEN = "REQUEST_TOKEN";
+    // Inform Client that he reconnected successfully 
+    public static final String RECONNECT_SUCCESS = "REQUEST_SUCCESS";
+    // Inform Client that reconnection was refused
+    public static final String RECONNECT_FAIL = "REQUEST_FAIL";
 }

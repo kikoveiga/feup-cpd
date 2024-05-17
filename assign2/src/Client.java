@@ -84,6 +84,23 @@ public class Client {
         }
     }
 
+    private void handleServerReconnection(String serverMessage) throws IOException {
+        switch (serverMessage) {
+            case Communication.REQUEST_TOKEN:
+                sendMessageToServer(retrieveToken());
+                break;
+
+            case Communication.RECONNECT_SUCCESS:
+                break;
+
+            case Communication.RECONNECT_FAIL:
+                break;
+        
+            default:
+                break;
+        }
+    }
+
     private void handleServerMessage(String serverMessage) throws IOException {
         if (serverMessage.equals(Communication.PING)) {
             sendMessageToServer(Communication.PONG);
@@ -94,7 +111,7 @@ public class Client {
         } else if (serverMessage.equals(Communication.WELCOME)) {
             handleServerWelcome();
         } else if (serverMessage.equals(Communication.REQUEST_TOKEN)) {
-            sendMessageToServer(retrieveToken());
+            handleServerReconnection(serverMessage);
         }
         else {
             System.out.println(serverMessage);
