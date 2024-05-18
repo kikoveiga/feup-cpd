@@ -12,6 +12,7 @@ public class UserDatabase {
     private Map<String, User> users;
     private final ObjectMapper objectMapper;
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private BCryptPasswordEncoder tokenEncoder = new BCryptPasswordEncoder();
 
     public UserDatabase() throws IOException {
         this.objectMapper = new ObjectMapper();
@@ -53,13 +54,20 @@ public class UserDatabase {
         return UUID.randomUUID().toString();
     }
 
-    public void assignSessionToken(String username) throws IOException {
+    // Assigns session token
+    // Returns not encoded session token
+    // Or null if user doesn't exist
+    public String assignSessionToken(String username) throws IOException {
         User user = users.get(username);
         if (user != null) {
             String token = generateSessionToken();
-            user.setSessionToken(token);
+            String encodedToken = tokenEncoder.encode(token);
+            user.setSessionToken(encodedToken);
             saveUsers();
+            return token;
         }
+
+        return null;
     }
 
     public String getSessionToken(String username) {
@@ -72,7 +80,7 @@ public class UserDatabase {
     public String getUsernameFromToken(String sessionToken) {
         for (Map.Entry<String, User> entry : users.entrySet()) {
             String retrievedToken = entry.getValue().getSessionToken();
-            if (retrievedToken != null && retrievedToken.equals(sessionToken)) {
+            if (retrievedToken != null && tokenEncoder.matches(sessionToken, retrievedToken)) {
                 return entry.getKey();
             }
         }
