@@ -214,6 +214,8 @@ public class Server {
     // Funtion that returns the list of players to start a ranked game with close rank
     private List<Client> getPlayerListRanked() {
         List<Client> playerList = new ArrayList<Client>();
+
+        clientQueue_lock.lock();
         
         for (int i1 = 0; i1 < clientQueue.size(); i1++) {
             playerList.clear();
@@ -232,16 +234,20 @@ public class Server {
             }
         }
 
+        clientQueue_lock.unlock();
+
         return null;
     }
 
     // Starts a new game with players (Clients) in playerList
     private void startNewGame(List<Client> playerList) {
-        System.out.println("players1 " + playerList);
-        Game game = new Game(playerList);
-        gameThreadPool.submit(() -> {
+
+        Game game = new Game(new ArrayList<>(playerList));
+
+        gameThreadPool.execute(() -> {
+            System.out.println("executed");
             game.startGame();
-        }); 
+        });
 
         gameList_lock.lock();
         try {
@@ -250,16 +256,7 @@ public class Server {
             System.out.println(log);
         } finally {
             gameList_lock.unlock();
-        }    
-
-        gameList_lock.unlock();
-
-        clientQueue_lock.lock();
-        try {
-            clientQueue.clear();
-        } finally {
-            clientQueue_lock.unlock();
-        }
+        } 
     }
 
     // Pings client

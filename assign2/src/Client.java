@@ -62,15 +62,6 @@ public class Client {
         serverWriter.println(message);
     }
 
-    public String receiveMessage() {
-        try {
-            return consoleReader.readLine();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     public int getScore() {
         return currentScore;
     }
@@ -128,10 +119,33 @@ public class Client {
             handleServerReconnection(serverMessage);
         } else if (serverMessage.startsWith("REGISTER")) {
             handleRegistration(serverMessage);
+        } else if (serverMessage.equals(Communication.PROVIDE_ANSWER)) {
+            handleQuestionAnswer();
         }
         else {
             System.out.println(serverMessage);
         }
+    }
+
+    private void handleQuestionAnswer() {
+        System.out.print("True or False? ");
+        try {
+            String answer = consoleReader.readLine();
+            if (!validateAnswer(answer)) {
+                System.out.println("Invalid answer!");
+                handleQuestionAnswer();
+            }
+            sendMessageToServer(answer);
+        } catch (IOException e) {
+            System.out.println("Error getting answer");
+        }
+    }
+
+    private boolean validateAnswer(String answer) {
+        if (answer.equalsIgnoreCase("true") || answer.equalsIgnoreCase("false")) {
+            return true;
+        }
+        return false;
     }
 
     private void handleRegistration(String serverMessage) throws IOException{

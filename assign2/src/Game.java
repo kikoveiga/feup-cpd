@@ -5,6 +5,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,6 +18,8 @@ import game_logic.TriviaResult;
 
 public class Game {
     private List<Client> playerList;
+    private final Lock playerList_lock = new ReentrantLock();
+
     private TriviaResponse triviaResponse;
     private boolean isGameRunning;
     private final int ROUNDS = 4;
@@ -44,12 +48,9 @@ public class Game {
     }
 
     public void startGame(){
-        System.out.println("111");
         loadQuestions("src/database/questions.json");
-        System.out.println("222");
         isGameRunning = true;
         broadcastMessage("Welcome to the Trivia!");
-        System.out.println("333");
         broadcastMessage("Questions will be given shortly please answer with True or False");
         // pause time here
         try {
@@ -79,20 +80,20 @@ public class Game {
     private Client determineWinner() {
         Client winner = null;
         int highestScore = -1;
+        playerList_lock.lock();
         for (Client player : playerList) {
             if (player.getScore() > highestScore) {
                 highestScore = player.getScore();
                 winner = player;
             }
         }
+        playerList_lock.unlock();
         return winner;
     }
 
     // Broadcast a message to all players
     public void broadcastMessage(String message) {
-        System.out.println(playerList);
         for (Client player : playerList) {
-            System.out.println("444");
             try {
                 Server.writeToClient(player.getSocket(), message);
             } catch (IOException e) {
@@ -102,7 +103,6 @@ public class Game {
     }
 
     private void askQuestionToAllPlayers() {
-        TriviaResult question;
         broadcastMessage("Question: " + triviaResponse.getRandomQuestion().getQuestion());
         for (Client player : playerList) {
             handlePlayerAnswer(player);
@@ -123,12 +123,5 @@ public class Game {
         } catch (IOException e) {
             System.out.println("Error communicating with Client: " + e.getMessage());
         }
-    }
-
-    public static void main(String[] args){
-        List<Client> players = new LinkedList<>();
-        Game game = new Game(players);
-        game.loadQuestions("src/database/questions.json");
-        game.startGame();
     }
 }
