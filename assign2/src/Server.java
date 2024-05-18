@@ -445,10 +445,19 @@ public class Server {
             System.out.println(log);
             writeToClient(client.getSocket(), "Success: Created your account.");
         } catch (Exception e) {
-            System.out.println("[AUTH] Error creating account: " + e.getMessage());
+            handleRegistrationError(client, e);
         } finally {
             userDatabase_lock.unlock();
         }
+    }
+
+    private void handleRegistrationError(Client client, Exception e) {
+        try {
+            writeToClient(client.getSocket(), "Authenticatio failed!");
+        } catch (IOException e2) {
+            System.out.println("[AUTH] Error communicating with Client: " + e.getMessage());
+        }
+        System.out.println("[AUTH] Client failed registration: " + e.getMessage());
     }
 
     public static void main(String[] args) {
