@@ -11,6 +11,7 @@ public class Client {
     private BufferedReader consoleReader;
     private BufferedReader serverReader;
     private PrintWriter serverWriter;
+    private int currentScore;
 
 
     public Client(Socket socket) throws IOException {
@@ -48,8 +49,24 @@ public class Client {
         this.lastResponseTime = System.currentTimeMillis();
     }
 
-    private void sendMessageToServer(String message) {
+    public void sendMessageToServer(String message) {
         serverWriter.println(message);
+    }
+
+    public String receiveMessage() {
+        try {
+            return consoleReader.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public int getScore() {
+        return currentScore;
+    }
+    public void incrementScore() {
+        this.currentScore++;
     }
 
     private void handleAuthentication(String serverMessage) throws IOException {

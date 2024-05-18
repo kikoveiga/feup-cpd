@@ -2,6 +2,7 @@ package game_logic;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import java.util.Random;
 
 public class TriviaResponse {
     private int responseCode;
@@ -23,6 +24,12 @@ public class TriviaResponse {
 
     public void setResults(List<TriviaResult> results) {
         this.results = results;
+    }
+
+    public TriviaResult getRandomQuestion() {
+        Random random = new Random();
+        int randomIndex = random.nextInt(results.size());
+        return results.get(randomIndex);
     }
 }
 

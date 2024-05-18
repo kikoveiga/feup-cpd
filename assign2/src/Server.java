@@ -176,6 +176,8 @@ public class Server {
     // Starts a new game with players (Clients) in playerList
     private void startNewGame(List<Client> playerList) {
         Game game = new Game(playerList);
+        game.loadQuestions("/home/belchior/Desktop/g17/assign2/src/database/questions.json");
+        game.startGame();
         gameList_lock.lock();
         gameList.add(game);
         String log = String.format("[Game %d] Started Game", gameList.size());
