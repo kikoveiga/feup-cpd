@@ -88,7 +88,9 @@ public class Server {
         Client client = new Client(socket);
         String clientAction = questionClient(client);
 
-        switch (clientAction) {
+        String command = clientAction.split(" ")[0];
+
+        switch (command) {
             case Communication.CLIENT_AUTH:
                 System.out.println("[AUTH] A Client is authenticating");
                 handleClientAuthentication(client);
@@ -97,6 +99,13 @@ public class Server {
             case Communication.CLIENT_RECONNECT:
                 System.out.println("[RECONNECT] A Client is reconnecting with token");
                 handleClientReconnection(client);
+                break;
+
+            case Communication.CLIENT_REGISTER:
+                System.out.println("[AUTH] A Client is creating a new account");
+                String username = clientAction.split(" ")[1];
+                String password = clientAction.split(" ")[2];
+                registerClient(client, username, password);
                 break;
         
             default:
@@ -425,6 +434,20 @@ public class Server {
             return -1;
         } finally {
             clientQueue_lock.unlock();
+        }
+    }
+
+    private void registerClient(Client client, String username, String password) {
+        userDatabase_lock.lock();
+        try {
+            userDatabase.createUser(username, password);
+            String log = String.format("[AUTH] New account created -> %s:%s", username, password);
+            System.out.println(log);
+            writeToClient(client.getSocket(), "Success: Created your account.");
+        } catch (Exception e) {
+            System.out.println("[AUTH] Error creating account: " + e.getMessage());
+        } finally {
+            userDatabase_lock.unlock();
         }
     }
 

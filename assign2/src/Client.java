@@ -174,7 +174,7 @@ public class Client {
             String username = consoleReader.readLine();
             System.out.print("Enter password: ");
             String password = consoleReader.readLine();
-            String msgToServer = String.format("%s %s %s", Communication.CLIENT_RECONNECT, username, password);
+            String msgToServer = String.format("%s %s %s", Communication.CLIENT_REGISTER, username, password);
             sendMessageToServer(msgToServer);
         } catch (IOException e) {
             System.out.println("Invalid username.");
