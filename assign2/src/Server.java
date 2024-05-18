@@ -13,11 +13,12 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Server {
     private final ExecutorService executor;
+    private final ExecutorService gameThreadPool;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     
     // General Info
     private final int MAX_NUMBER_GAMES = 5;
-    private final int PLAYERS_PER_GAME = 3;
+    private final int PLAYERS_PER_GAME = 2;
 
     // Client Queue
     private final List<Client> clientQueue;
@@ -60,7 +61,8 @@ public class Server {
         this.gameList = new ArrayList<Game>();
         this.userDatabase = new UserDatabase();
         this.gameMode = gameMode;
-        executor = Executors.newFixedThreadPool(MAX_NUMBER_GAMES);
+        executor = Executors.newFixedThreadPool(100); // 100 hardcoded for now. how many clients?
+        gameThreadPool = Executors.newFixedThreadPool(MAX_NUMBER_GAMES);
 
         // Schedulers
         schedulePing();
@@ -72,13 +74,13 @@ public class Server {
         this.reconnectPosition = new HashMap<String,Integer>();
     }
 
-    private void writeToClient(Socket clientSocket, String message) throws IOException{
+    public static void writeToClient(Socket clientSocket, String message) throws IOException{
         OutputStream output = clientSocket.getOutputStream();
         PrintWriter writer = new PrintWriter(output, true);
         writer.println(message);
     }
 
-    private String readFromClient(Socket clientSocket) throws IOException {
+    public static String readFromClient(Socket clientSocket) throws IOException {
         InputStream input = clientSocket.getInputStream();
         BufferedReader reader = new BufferedReader(new InputStreamReader(input));
         return reader.readLine();
@@ -199,8 +201,13 @@ public class Server {
 
     // Removes clientsToRemove from Queue
     private void removeClientsFromQueue(List<Client> clientsToRemove) {
-        for (Client client : clientsToRemove) {
-            clientQueue.remove(client);
+        clientQueue_lock.lock();
+        try {
+            for (Client client : clientsToRemove) {
+                clientQueue.remove(client);
+            }
+        } finally {
+            clientQueue_lock.unlock();
         }
     }
 
@@ -230,15 +237,29 @@ public class Server {
 
     // Starts a new game with players (Clients) in playerList
     private void startNewGame(List<Client> playerList) {
+        System.out.println("players1 " + playerList);
         Game game = new Game(playerList);
-        game.loadQuestions("/home/belchior/Desktop/g17/assign2/src/database/questions.json");
-        game.startGame();
+        gameThreadPool.submit(() -> {
+            game.startGame();
+        }); 
+
         gameList_lock.lock();
-        gameList.add(game);
-        String log = String.format("[Game %d] Started Game", gameList.size());
-        System.out.println(log);
+        try {
+            gameList.add(game);
+            String log = String.format("[Game %d] Started Game", gameList.size());
+            System.out.println(log);
+        } finally {
+            gameList_lock.unlock();
+        }    
+
         gameList_lock.unlock();
-        clientQueue.clear();
+
+        clientQueue_lock.lock();
+        try {
+            clientQueue.clear();
+        } finally {
+            clientQueue_lock.unlock();
+        }
     }
 
     // Pings client

@@ -41,4 +41,10 @@ public class Communication {
     public static final String REGISTER_SUCCESS = "REGISTER_SUCCESS";
     // Server informs Client that registration Failed
     public static final String REGISTER_FAIL = "REGISTER_FAIL";
+    // Request Client for question answer
+    public static final String PROVIDE_ANSWER = "PROVIDE_ANSWER";
+    // Client answers a question
+    // Message content -> <ANSWER_NO>
+    // Example -> "ANSWER 1"
+    public static final String ANSWER = "ANSWER";
 }

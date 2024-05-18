@@ -44,8 +44,12 @@ public class Game {
     }
 
     public void startGame(){
+        System.out.println("111");
+        loadQuestions("src/database/questions.json");
+        System.out.println("222");
         isGameRunning = true;
         broadcastMessage("Welcome to the Trivia!");
+        System.out.println("333");
         broadcastMessage("Questions will be given shortly please answer with True or False");
         // pause time here
         try {
@@ -55,7 +59,6 @@ public class Game {
         }
 
         loop();
-
     }
 
     public void loop() {
@@ -87,8 +90,14 @@ public class Game {
 
     // Broadcast a message to all players
     public void broadcastMessage(String message) {
+        System.out.println(playerList);
         for (Client player : playerList) {
-            player.sendMessageToServer(message);
+            System.out.println("444");
+            try {
+                Server.writeToClient(player.getSocket(), message);
+            } catch (IOException e) {
+                System.out.println("Error communicating with Client: " + e.getMessage());
+            }
         }
     }
 
@@ -96,21 +105,30 @@ public class Game {
         TriviaResult question;
         broadcastMessage("Question: " + triviaResponse.getRandomQuestion().getQuestion());
         for (Client player : playerList) {
-            String answer = player.receiveMessage();
+            handlePlayerAnswer(player);
+        }
+    }
+
+    // Handles a player's answer to a question
+    private void handlePlayerAnswer(Client player) {
+        try {
+            Server.writeToClient(player.getSocket(), Communication.PROVIDE_ANSWER);
+            String answer = Server.readFromClient(player.getSocket());
+
             if (answer.equalsIgnoreCase(triviaResponse.getRandomQuestion().getCorrectAnswer())) {
                 player.incrementScore();
                 player.sendMessageToServer("Correct! Your score: " + player.getScore());
-                break;
             }
+
+        } catch (IOException e) {
+            System.out.println("Error communicating with Client: " + e.getMessage());
         }
     }
 
     public static void main(String[] args){
         List<Client> players = new LinkedList<>();
         Game game = new Game(players);
-        game.loadQuestions("/home/belchior/Desktop/g17/assign2/src/database/questions.json");
+        game.loadQuestions("src/database/questions.json");
         game.startGame();
     }
-
-
 }
