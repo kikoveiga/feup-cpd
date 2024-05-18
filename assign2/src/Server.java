@@ -443,7 +443,8 @@ public class Server {
             userDatabase.createUser(username, password);
             String log = String.format("[AUTH] New account created -> %s:%s", username, password);
             System.out.println(log);
-            writeToClient(client.getSocket(), "Success: Created your account.");
+            writeToClient(client.getSocket(), Communication.REGISTER_SUCCESS);
+            handleClient(client.getSocket());
         } catch (Exception e) {
             handleRegistrationError(client, e);
         } finally {
@@ -453,7 +454,7 @@ public class Server {
 
     private void handleRegistrationError(Client client, Exception e) {
         try {
-            writeToClient(client.getSocket(), "Authenticatio failed!");
+            writeToClient(client.getSocket(), Communication.REGISTER_FAIL);
         } catch (IOException e2) {
             System.out.println("[AUTH] Error communicating with Client: " + e.getMessage());
         }

@@ -94,6 +94,7 @@ public class Client {
         } 
     }
 
+    // TODO -> REFACTOR THIS
     private void handleServerMessage(String serverMessage) throws IOException {
         if (serverMessage.equals(Communication.PING)) {
             sendMessageToServer(Communication.PONG);
@@ -108,9 +109,25 @@ public class Client {
         }
         else if (serverMessage.startsWith("RECONNECT")) {
             handleServerReconnection(serverMessage);
+        } else if (serverMessage.startsWith("REGISTER")) {
+            handleRegistration(serverMessage);
         }
         else {
             System.out.println(serverMessage);
+        }
+    }
+
+    private void handleRegistration(String serverMessage) throws IOException{
+        switch (serverMessage) {
+            case Communication.REGISTER_SUCCESS:
+                System.out.println("Account created successfully.");
+                break;
+            case Communication.REGISTER_FAIL:
+                System.out.println("Account creation failed. Disconnecting...");
+                socket.close();
+                break;
+            default:
+                break;
         }
     }
 
