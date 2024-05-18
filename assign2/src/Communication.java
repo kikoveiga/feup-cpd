@@ -15,8 +15,10 @@ public class Communication {
     public static final String AUTH_SUCCESS = "AUTH_SUCCESS";
     // Server informs about failed authentication
     public static final String AUTH_FAIL = "AUTH_FAIL";
+    // Server informs that the User is already logged in
+    public static final String AUTH_ALREADY_LOGGED_IN = "AUTH_ALREADY_LOGGED_IN";
     // Hash Set with Authentication messages
-    public static final Set<String> AUTH_MESSAGES = Set.of(AUTH, PASS, AUTH_SUCCESS, AUTH_FAIL);
+    public static final Set<String> AUTH_MESSAGES = Set.of(AUTH, PASS, AUTH_SUCCESS, AUTH_FAIL, AUTH_ALREADY_LOGGED_IN);
     // Ping
     public static final String PING = "PING";
     // Pong (Answer to Ping)
@@ -33,4 +35,6 @@ public class Communication {
     public static final String RECONNECT_SUCCESS = "RECONNECT_SUCCESS";
     // Inform Client that reconnection was refused
     public static final String RECONNECT_FAIL = "RECONNECT_FAIL";
+    // Inform Client that he can't reconnect because he is already logged in
+    public static final String RECONNECT_ALREADY_LOGGED_IN = "RECONNECT_ALREADY_LOGGED_IN";
 }
