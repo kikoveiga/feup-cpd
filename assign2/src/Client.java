@@ -167,9 +167,24 @@ public class Client {
         }
     }
 
+    private void handleRegister() {
+        try {
+            System.out.println("Create your account!");
+            System.out.print("Enter username: ");
+            String username = consoleReader.readLine();
+            System.out.print("Enter password: ");
+            String password = consoleReader.readLine();
+            String msgToServer = String.format("%s %s %s", Communication.CLIENT_RECONNECT, username, password);
+            sendMessageToServer(msgToServer);
+        } catch (IOException e) {
+            System.out.println("Invalid username.");
+        } 
+    }
+
     private void handleServerWelcome() throws IOException{
         System.out.println("1. Log In");
         System.out.println("2. Reconnect");
+        System.out.println("3. Create Account");
         System.out.print("Select: ");
         String answer = consoleReader.readLine();
 
@@ -180,6 +195,10 @@ public class Client {
 
             case "2":
                 sendMessageToServer(Communication.CLIENT_RECONNECT);
+                break;
+
+            case "3":
+                handleRegister();
                 break;
         
             default:
