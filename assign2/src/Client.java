@@ -12,6 +12,7 @@ public class Client {
     private BufferedReader serverReader;
     private PrintWriter serverWriter;
     private int currentScore;
+    private String sessionToken;
 
 
     public Client(Socket socket) throws IOException {
@@ -39,6 +40,14 @@ public class Client {
 
     public void setRank(int rank) {
         this.rank = rank;
+    }
+
+    public void setSessionToken(String sessionToken) {
+        this.sessionToken = sessionToken;
+    }
+
+    public void clearSessionToken() {
+        this.sessionToken = "";
     }
 
     public long getLastResponseTime() {
@@ -74,6 +83,7 @@ public class Client {
             case Communication.AUTH:
                 System.out.print("Username: ");
                 String username = consoleReader.readLine();
+                setUsername(username);
                 sendMessageToServer(username);
                 break;
             case Communication.PASS:
@@ -91,13 +101,50 @@ public class Client {
         }
     }
 
+    private void handleServerReconnection(String serverMessage) throws IOException {
+        if (serverMessage.startsWith(Communication.RECONNECT_SUCCESS)) {
+            String queuePos = getMessageContent(serverMessage);
+            System.out.println("Reconnected with position " + queuePos);
+        } else if (serverMessage.equals(Communication.RECONNECT_FAIL)) {
+            System.out.println("Reconnection failed. Disconnecting...");
+            this.socket.close();
+        } 
+    }
+
+    // TODO -> REFACTOR THIS
     private void handleServerMessage(String serverMessage) throws IOException {
         if (serverMessage.equals(Communication.PING)) {
             sendMessageToServer(Communication.PONG);
         } else if (Communication.AUTH_MESSAGES.contains(serverMessage)) {
             handleAuthentication(serverMessage);
-        } else {
+        } else if (serverMessage.startsWith(Communication.TOKEN)) {
+            storeToken(getMessageContent(serverMessage));
+        } else if (serverMessage.equals(Communication.WELCOME)) {
+            handleServerWelcome();
+        } else if (serverMessage.equals(Communication.REQUEST_TOKEN)) {
+            sendMessageToServer(retrieveToken());
+        }
+        else if (serverMessage.startsWith("RECONNECT")) {
+            handleServerReconnection(serverMessage);
+        } else if (serverMessage.startsWith("REGISTER")) {
+            handleRegistration(serverMessage);
+        }
+        else {
             System.out.println(serverMessage);
+        }
+    }
+
+    private void handleRegistration(String serverMessage) throws IOException{
+        switch (serverMessage) {
+            case Communication.REGISTER_SUCCESS:
+                System.out.println("Account created successfully.");
+                break;
+            case Communication.REGISTER_FAIL:
+                System.out.println("Account creation failed. Disconnecting...");
+                socket.close();
+                break;
+            default:
+                break;
         }
     }
 
@@ -105,6 +152,91 @@ public class Client {
         String serverMessage;
         while ((serverMessage = serverReader.readLine()) != null) {
             handleServerMessage(serverMessage);
+        }
+    }
+
+    // Example : "PROTOCOL CONTENT"
+    // retrieves CONTENT
+    private String getMessageContent(String serverMessage) {
+        String[] parts = serverMessage.split(" ");
+        if (parts.length >= 2) {
+            return parts[1];
+        } else {
+            return "";
+        }
+    }
+
+    // Stores the token in a file 
+    // This simulates what would be the Client's system storage
+    private void storeToken(String sessionToken) {
+        try {
+            String filename = "token-" + this.username + ".txt";
+            File file = new File("src/database/tokens/" + filename);
+
+            // Create the file if it doesn't exist
+            FileWriter writer = new FileWriter(file, false);
+            writer.write(sessionToken);
+            writer.close();
+            System.out.println("Token stored successfully.");
+        } catch (IOException e) {
+            System.out.println("Error storing token: " + e.getMessage());
+        }
+    }
+
+    // Gets the token from the Client's 'system'
+    private String retrieveToken() throws IOException {
+        try {
+            System.out.print("Token filename: ");
+            String filename = consoleReader.readLine();
+            File file = new File("src/database/tokens/" + filename);
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            String line = reader.readLine();
+            reader.close();
+            return line;
+        } catch (IOException e) {
+            System.out.println("Your session token is invalid");
+            System.out.println("Disconnecting...");
+            this.socket.close();
+            return null;
+        }
+    }
+
+    private void handleRegister() {
+        try {
+            System.out.println("Create your account!");
+            System.out.print("Enter username: ");
+            String username = consoleReader.readLine();
+            System.out.print("Enter password: ");
+            String password = consoleReader.readLine();
+            String msgToServer = String.format("%s %s %s", Communication.CLIENT_REGISTER, username, password);
+            sendMessageToServer(msgToServer);
+        } catch (IOException e) {
+            System.out.println("Invalid username.");
+        } 
+    }
+
+    private void handleServerWelcome() throws IOException{
+        System.out.println("1. Log In");
+        System.out.println("2. Reconnect");
+        System.out.println("3. Create Account");
+        System.out.print("Select: ");
+        String answer = consoleReader.readLine();
+
+        switch (answer) {
+            case "1":
+                sendMessageToServer(Communication.CLIENT_AUTH);
+                break;
+
+            case "2":
+                sendMessageToServer(Communication.CLIENT_RECONNECT);
+                break;
+
+            case "3":
+                handleRegister();
+                break;
+        
+            default:
+                break;
         }
     }
 

@@ -1,14 +1,18 @@
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.UUID;
 
 public class UserDatabase {
     private static final String FILE_PATH = "src/database/users.json";
     private Map<String, User> users;
     private final ObjectMapper objectMapper;
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private BCryptPasswordEncoder tokenEncoder = new BCryptPasswordEncoder();
 
     public UserDatabase() throws IOException {
         this.objectMapper = new ObjectMapper();
@@ -30,7 +34,7 @@ public class UserDatabase {
 
     public boolean authenticate(String username, String password) {
         User user = users.get(username);
-        return user != null && password.equals(user.getPassword());
+        return user != null && passwordEncoder.matches(password, user.getPassword());
     }
 
     public void assignRank(String username, int rank) throws IOException {
@@ -46,10 +50,58 @@ public class UserDatabase {
         return user != null ? user.getRank() : -1; // Return -1 if user is not found
     }
 
+    public String generateSessionToken() {
+        return UUID.randomUUID().toString();
+    }
+
+    // Assigns session token
+    // Returns not encoded session token
+    // Or null if user doesn't exist
+    public String assignSessionToken(String username) throws IOException {
+        User user = users.get(username);
+        if (user != null) {
+            String token = generateSessionToken();
+            String encodedToken = tokenEncoder.encode(token);
+            user.setSessionToken(encodedToken);
+            saveUsers();
+            return token;
+        }
+
+        return null;
+    }
+
+    public String getSessionToken(String username) {
+        User user = users.get(username);
+        return user != null ? user.getSessionToken() : null;
+    }
+
+    // Gets username form a sessionToken
+    // returns null if no user found with that sessionToken
+    public String getUsernameFromToken(String sessionToken) {
+        for (Map.Entry<String, User> entry : users.entrySet()) {
+            String retrievedToken = entry.getValue().getSessionToken();
+            if (retrievedToken != null && tokenEncoder.matches(sessionToken, retrievedToken)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    public void createUser(String username, String password) throws IOException {
+        if (!users.containsKey(username)) {
+            String encodedPassword = passwordEncoder.encode(password);
+            User newUser = new User(encodedPassword, 100);
+            users.put(username, newUser);
+            saveUsers();
+        } else {
+            throw new IllegalArgumentException("Username already exists.");
+        }
+    }
+
     public static class User {
         private String password;
         private int rank;
-
+        private String sessionToken;
 
         public User() {
         }
@@ -75,7 +127,13 @@ public class UserDatabase {
             this.rank = rank;
         }
 
-
+        public String getSessionToken() {
+            return sessionToken;
+        }
+    
+        public void setSessionToken(String sessionToken) {
+            this.sessionToken = sessionToken;
+        }
 
     }
 
