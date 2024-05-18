@@ -11,6 +11,7 @@ public class UserDatabase {
     private static final String FILE_PATH = "src/database/users.json";
     private Map<String, User> users;
     private final ObjectMapper objectMapper;
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public UserDatabase() throws IOException {
         this.objectMapper = new ObjectMapper();
@@ -32,7 +33,7 @@ public class UserDatabase {
 
     public boolean authenticate(String username, String password) {
         User user = users.get(username);
-        return user != null && password.equals(user.getPassword());
+        return user != null && passwordEncoder.matches(password, user.getPassword());
     }
 
     public void assignRank(String username, int rank) throws IOException {
@@ -80,7 +81,8 @@ public class UserDatabase {
 
     public void createUser(String username, String password) throws IOException {
         if (!users.containsKey(username)) {
-            User newUser = new User(password, 100);
+            String encodedPassword = passwordEncoder.encode(password);
+            User newUser = new User(encodedPassword, 100);
             users.put(username, newUser);
             saveUsers();
         } else {
