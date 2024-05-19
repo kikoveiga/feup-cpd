@@ -40,13 +40,13 @@ public class Client {
         this.rank = rank;
     }
 
-    public long getLastResponseTime() {
-        return lastResponseTime;
-    }
-
     // Updates lastResponseTime to current time
     public void setLastResponseTime() {
         this.lastResponseTime = System.currentTimeMillis();
+    }
+
+    public long getLastResponseTime() {
+        return lastResponseTime;
     }
 
     // Send a message to the server
@@ -94,7 +94,7 @@ public class Client {
     }
 
     // Handles reconnection to server using session token
-    private void handleServerReconnection(String serverMessage) throws IOException {
+    private void handleServerReconnection(String serverMessage) {
         if (serverMessage.startsWith(Communication.RECONNECT_SUCCESS)) {
             String queuePos = getMessageContent(serverMessage);
             System.out.println("Reconnected with position " + queuePos);
@@ -210,7 +210,7 @@ public class Client {
     }
 
     // Gets the token from the Client's 'system'
-    private String retrieveToken() throws IOException {
+    private String retrieveToken() {
         try {
             System.out.print("Token filename: ");
             String filename = consoleReader.readLine();

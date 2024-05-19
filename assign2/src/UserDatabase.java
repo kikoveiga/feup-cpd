@@ -39,7 +39,8 @@ public class UserDatabase {
                 users = new HashMap<>();
                 return;
             }
-            users = objectMapper.readValue(file, new TypeReference<Map<String, User>>() {});
+            users = objectMapper.readValue(file, new TypeReference<>() {
+            });
         } else {
             throw new IOException("User database file not found.");
         }
@@ -54,15 +55,6 @@ public class UserDatabase {
     public boolean authenticate(String username, String password) {
         User user = users.get(username);
         return user != null && passwordEncoder.matches(password, user.getPassword());
-    }
-
-    // Assigns 'rank' to user with 'username'
-    public void assignRank(String username, int rank) throws IOException {
-        User user = users.get(username);
-        if (user != null) {
-            user.setRank(rank);
-            saveUsers();
-        }
     }
 
     // Increments User rank by 'addedRank'
@@ -100,12 +92,6 @@ public class UserDatabase {
         }
 
         return null;
-    }
-
-    // Gets session token from user
-    public String getSessionToken(String username) {
-        User user = users.get(username);
-        return user != null ? user.getSessionToken() : null;
     }
 
     // Gets username form a sessionToken
@@ -148,10 +134,6 @@ public class UserDatabase {
 
         public String getPassword() {
             return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
         }
 
         public int getRank() {

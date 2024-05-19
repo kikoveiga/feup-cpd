@@ -160,7 +160,7 @@ public class Server {
         writeToClient(client.getSocket(), Communication.AUTH_PASSWORD);
         String password = readFromClient(client.getSocket());
 
-        boolean authSuccess = false;
+        boolean authSuccess;
 
         userDatabase_lock.lock();
         try {
@@ -285,7 +285,7 @@ public class Server {
             clientQueue_lock.unlock();
         }
     
-        if (startGame && playerList != null) {
+        if (startGame) {
             startNewGame(playerList);
         }
     }
