@@ -27,8 +27,6 @@ Replace port with the port number you wish to use (e.g., 12345).
 
 ### Connecting Clients
 
-And connect **Clients**:
-
 After the server is running, you can connect clients to it. Run the following command from a different terminal window for each client:
 
 
@@ -37,3 +35,21 @@ java -cp "lib/*:out" Client localhost <port>
 ```
 
 Again, replace port with the same port number used to start the server.
+
+## Multi-threading Strategy
+
+### Structures
+
+We are utilizing Java 21's advanced concurrency features, including virtual thread pools, to efficiently manage multiple client connections and game interactions simultaneously.
+
+- **Server Threads**: Each new client connection initiates a dedicated virtual thread. This approach ensures that each client's interactions with the server are handled concurrently, without blocking other operations, particularly beneficial for I/O-bound tasks such as network communication. Each new game also has his own thread.
+
+- **Game Threads**: We allocate two separate virtual threads - one for each player.
+
+### Thread Safety Mechanisms
+
+To maintain data integrity and prevent race conditions in concurrent operations, we employ several thread-safe mechanisms:
+
+- **Reentrant Locks**: We use ReentrantLock for critical sections that might be accessed concurrently. This type of lock is advantageous because it allows the thread holding the lock to lock it multiple times before unlocking, which is crucial for operations where nested method calls require the same lock.
+
+- **Lock Management:** Each critical section or shared resource is protected using these locks. This ensures that only one thread can modify the state at any given time, thereby preventing inconsistencies and ensuring thread safety.
