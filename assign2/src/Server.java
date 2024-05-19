@@ -250,43 +250,62 @@ public class Server {
     // Adds a Client to the clientQueue
     private void addClientToQueue(Client client) throws IOException{
         clientQueue_lock.lock();
-        clientQueue.add(client);
-        notifyClientPosition(client, clientQueue.size());
-        String log = String.format("[QUEUE] Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
-        System.out.println(log);
-        checkForNewGame();
-        clientQueue_lock.unlock();
+        try {
+            clientQueue.add(client);
+            notifyClientPosition(client, clientQueue.size());
+            String log = String.format("[QUEUE] Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
+            System.out.println(log);
+            checkForNewGame();
+        } finally {
+            clientQueue_lock.unlock();
+        }
     }
 
     // TODO -> refactor this to the previous function
     // Adds a Client to the clientQueue with specific pos
     private void addClientToQueuePos(Client client, int queuePos) throws IOException{
         clientQueue_lock.lock();
-        clientQueue.add(queuePos - 1, client);
-        notifyClientPosition(client, queuePos);
-        String log = String.format("[QUEUE] Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
-        System.out.println(log);
-        clientQueue_lock.unlock();
+        try {
+            clientQueue.add(queuePos - 1, client);
+            notifyClientPosition(client, queuePos);
+            String log = String.format("[QUEUE] Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
+            System.out.println(log);
+        } finally {
+            clientQueue_lock.unlock();
+        }
     }
 
     // Checks if a new Game should start
-    private void checkForNewGame() throws IOException{
+    private void checkForNewGame() throws IOException {
+        List<Client> playerList = null;
+        boolean startGame = false;
+    
         clientQueue_lock.lock();
-        if (clientQueue.size() >= PLAYERS_PER_GAME) {
-            switch (gameMode) {
-                case SIMPLE:
-                    startNewGame(clientQueue);     
-                    clientQueue.clear();
-                case RANKED:
-                    List<Client> playerList = getPlayerListRanked();
-                    if (playerList != null) {
-                        removeClientsFromQueue(playerList);
-                        startNewGame(playerList);
-                        MATCHMAKING_MAX_DIFF = 100;
-                    }
+        try {
+            if (clientQueue.size() >= PLAYERS_PER_GAME) {
+                switch (gameMode) {
+                    case SIMPLE:
+                        playerList = new ArrayList<>(clientQueue);
+                        clientQueue.clear();
+                        startGame = true;
+                        break;
+                    case RANKED:
+                        playerList = getPlayerListRanked();
+                        if (playerList != null) {
+                            removeClientsFromQueue(playerList);
+                            MATCHMAKING_MAX_DIFF = 100;
+                            startGame = true;
+                        }
+                        break;
+                }
             }
+        } finally {
+            clientQueue_lock.unlock();
         }
-        clientQueue_lock.unlock();
+    
+        if (startGame && playerList != null) {
+            startNewGame(playerList);
+        }
     }
 
     // Removes clientsToRemove from Queue
@@ -420,7 +439,7 @@ public class Server {
             } catch (IOException e) {
                 System.out.println("[ERROR] Failed to notify clients positions: " + e.getMessage());
             }
-        }, 0, NOTIFY_QUEUE_POS_INTERVAL, TimeUnit.SECONDS);
+        }, NOTIFY_QUEUE_POS_INTERVAL, NOTIFY_QUEUE_POS_INTERVAL, TimeUnit.SECONDS);
     }
 
     // Sends a message to the Client regarding his Queue position
@@ -432,10 +451,13 @@ public class Server {
     // Notifies all clients of their Queue position
     private void notifyAllClientsPositions() throws IOException {
         clientQueue_lock.lock();
-        for (int i = 0; i < clientQueue.size(); i++) {
-            notifyClientPosition(clientQueue.get(i), i + 1);
+        try {
+            for (int i = 0; i < clientQueue.size(); i++) {
+                notifyClientPosition(clientQueue.get(i), i + 1);
+            }
+        } finally {
+            clientQueue_lock.unlock();
         }
-        clientQueue_lock.unlock();
     }
 
     // Choose Mode, Simple or Ranked
