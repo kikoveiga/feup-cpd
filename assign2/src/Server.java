@@ -24,9 +24,9 @@ public class Server {
     private final List<Client> clientQueue;
     private final ReentrantLock clientQueue_lock = new ReentrantLock();
 
-    // Game List
-    private final List<Game> gameList;
-    private final ReentrantLock gameList_lock = new ReentrantLock();
+    // Game ID
+    private int gameId;
+    private final ReentrantLock gameId_lock = new ReentrantLock();
 
     // Database
     private final UserDatabase userDatabase;
@@ -49,11 +49,11 @@ public class Server {
 
     public Server(int gameMode) throws IOException{
         this.clientQueue = new ArrayList<>();
-        this.gameList = new ArrayList<>();
         this.userDatabase = new UserDatabase();
         this.gameMode = gameMode;
         this.loggedInUsers = new HashSet<>();
         this.gameThreadPool = Executors.newVirtualThreadPerTaskExecutor();
+        this.gameId = 1;
 
         File directory = new File("src/database/tokens/");
         if (directory.exists()) {
@@ -353,9 +353,9 @@ public class Server {
 
     // Starts a new game with players (Clients) in playerList
     private void startNewGame(List<Client> playerList) throws IOException {
-        gameList_lock.lock();
+        gameId_lock.lock();
         try {
-            Game game = new Game(gameList.size() + 1, new ArrayList<>(playerList), userDatabase, userDatabase_lock, this);
+            Game game = new Game(gameId++, new ArrayList<>(playerList), userDatabase, userDatabase_lock, this);
 
             gameThreadPool.execute(() -> {
                 try {
@@ -364,12 +364,11 @@ public class Server {
                     serverLog(e.getMessage());
                 }
             });
-            gameList.add(game);
-            String log = String.format("[Game %d] Started Game", gameList.size());
+            String log = String.format("[Game %d] Started Game", game.getId());
             System.out.println(log);
         } finally {
-            gameList_lock.unlock();
-        } 
+            gameId_lock.unlock();
+        }
     }
 
     // Pings client
