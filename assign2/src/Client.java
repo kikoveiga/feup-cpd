@@ -70,12 +70,12 @@ public class Client {
 
     private void handleAuthentication(String serverMessage) throws IOException {
         switch (serverMessage) {
-            case Communication.AUTH:
+            case Communication.USERNAME:
                 String username = enterUsername();
                 setUsername(username);
                 sendMessageToServer(username);
                 break;
-            case Communication.PASS:
+            case Communication.PASSWORD:
                 String password = enterPassword();
                 sendMessageToServer(password);
                 break;
@@ -88,6 +88,13 @@ public class Client {
                 break;
             case Communication.AUTH_SUCCESS:
                 System.out.println("Authenticated successfully.");
+                break;
+            case Communication.CLIENT_DISCONNECT:
+                System.out.println("Disconnected from server.");
+                socket.close();
+                break;
+
+            default:
                 break;
         }
     }
@@ -263,7 +270,7 @@ public class Client {
                 break;
 
             case "3":
-                handleRegister();
+                sendMessageToServer(Communication.CLIENT_REGISTER);
                 break;
         
             default:
