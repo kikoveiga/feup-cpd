@@ -40,7 +40,7 @@ public class Server {
     // - Ranked Mode -
     // Maximum difference between player's Ranks
     private int MATCHMAKING_MAX_DIFF = 100;
-    private int MATCHMAKING_RELAX = 100; 
+    private final int MATCHMAKING_RELAX = 100;
 
     // {username : position}
     // Stores the client's queue position when he disconnects
@@ -300,7 +300,7 @@ public class Server {
 
     // Function that returns the list of players to start a ranked game with close rank
     private List<Client> getPlayerListRanked() {
-        List<Client> playerList = new ArrayList<Client>();
+        List<Client> playerList = new ArrayList<>();
 
         clientQueue_lock.lock();
         
@@ -327,7 +327,7 @@ public class Server {
     }
 
     // Starts a new game with players (Clients) in playerList
-    private void startNewGame(List<Client> playerList) throws IOException {
+    private void startNewGame(List<Client> playerList) {
         gameList_lock.lock();
         try {
             Game game = new Game(gameList.size() + 1, new ArrayList<>(playerList), userDatabase, userDatabase_lock, this);
@@ -395,7 +395,7 @@ public class Server {
         }
     }
 
-    private void schedulePing() throws IOException {
+    private void schedulePing() {
         // - Time Intervals (in seconds) -
         // Interval to send PING to all clients
         int PING_INTERVAL = 3;
@@ -408,7 +408,7 @@ public class Server {
         }, 0, PING_INTERVAL, TimeUnit.SECONDS);
     }
 
-    private void scheduleNotifyQueuePos() throws IOException {
+    private void scheduleNotifyQueuePos() {
         // Interval to notify clients of their Queue position
         int NOTIFY_QUEUE_POS_INTERVAL = 10;
         scheduler.scheduleAtFixedRate(() -> {
@@ -465,7 +465,7 @@ public class Server {
         System.out.println("[MATCHMAKING] Increased Max Difference to " + MATCHMAKING_MAX_DIFF);
     }
 
-    private void scheduleMatchmakingRelax() throws IOException {
+    private void scheduleMatchmakingRelax() {
         // Interval to relax Matchmaking
         int RELAX_MATCHMAKING_INTERVAL = 30;
         scheduler.scheduleAtFixedRate(() -> {
@@ -567,7 +567,7 @@ public class Server {
         }
     }
 
-    public void reQueuePlayers(List<Client> clients) throws IOException {
+    public void reQueuePlayers(List<Client> clients) {
         for (Client client : clients) {
             requeueOrExit(client);
         }
