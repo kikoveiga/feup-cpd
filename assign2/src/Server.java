@@ -86,6 +86,10 @@ public class Server {
         return reader.readLine();
     }
 
+    public static void serverLog(String log) {
+        System.out.println(log);
+    }
+
     private void handleClient(Socket socket) throws IOException {
         Client client = new Client(socket);
         String clientAction = questionClient(client);
@@ -241,16 +245,14 @@ public class Server {
 
     // Starts a new game with players (Clients) in playerList
     private void startNewGame(List<Client> playerList) {
-
-        Game game = new Game(new ArrayList<>(playerList));
-
-        gameThreadPool.execute(() -> {
-            System.out.println("executed");
-            game.startGame();
-        });
-
         gameList_lock.lock();
         try {
+            Game game = new Game(gameList.size() + 1, new ArrayList<>(playerList));
+
+            gameThreadPool.execute(() -> {
+                System.out.println("executed");
+                game.startGame();
+            });
             gameList.add(game);
             String log = String.format("[Game %d] Started Game", gameList.size());
             System.out.println(log);

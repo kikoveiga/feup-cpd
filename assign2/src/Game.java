@@ -14,6 +14,7 @@ import game_logic.TriviaResponse;
 import game_logic.TriviaResult;
 
 public class Game {
+    private int gameId;
     private List<Client> playerList;
     private final Lock playerList_lock = new ReentrantLock();
     private TriviaResponse triviaResponse;
@@ -21,7 +22,8 @@ public class Game {
     private final int ROUNDS = 4;
     private ExecutorService playerThreadPool;
 
-    public Game(List<Client> playerList) {
+    public Game(int gameId, List<Client> playerList) {
+        this.gameId = gameId;
         this.playerList = playerList;
         this.triviaResponse = new TriviaResponse();
         this.isGameRunning = false;
@@ -54,6 +56,8 @@ public class Game {
 
     private void loop() {
         for (int round = 0; round < ROUNDS && isGameRunning; round++) {
+            String log = String.format("[Game %d] Started Round %d", gameId, round + 1);
+            Server.serverLog(log);
             askQuestionToAllPlayers();
         }
         endGame();
@@ -99,13 +103,17 @@ public class Game {
 
     private void askQuestionToAllPlayers() {
         TriviaResult question = triviaResponse.getRandomQuestion();
-        broadcastMessage("Round Question: " + question.getQuestion() + " True or False?");
+        broadcastMessage("Round Question: " + question.getQuestion());
 
         CountDownLatch latch = new CountDownLatch(2);
         
         playerList.forEach(player -> 
             playerThreadPool.execute(() -> {
-                handlePlayerAnswer(player, question.getCorrectAnswer(), latch);
+                try {
+                    handlePlayerAnswer(player, question.getCorrectAnswer(), latch);
+                } catch (Exception e) {
+                    Server.serverLog("Server exception: " + e.getMessage());
+                }
             })
         );
 
@@ -119,7 +127,7 @@ public class Game {
 
     private void handlePlayerAnswer(Client player, String correctAnswer, CountDownLatch latch) {
         try {
-            Server.writeToClient(player.getSocket(), Communication.PROVIDE_ANSWER   );
+            Server.writeToClient(player.getSocket(), Communication.PROVIDE_ANSWER);
             String answer = Server.readFromClient(player.getSocket());
             if (answer.equalsIgnoreCase(correctAnswer)) {
                 player.incrementScore();
