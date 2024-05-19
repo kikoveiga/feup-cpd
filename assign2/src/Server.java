@@ -173,31 +173,43 @@ public class Server {
         }
     }
 
-    private boolean authenticateClient(Client client) throws IOException{
+    private boolean authenticateClient(Client client) throws IOException {
         writeToClient(client.getSocket(), Communication.USERNAME);
         String username = readFromClient(client.getSocket());
         client.setUsername(username);
-
+    
         writeToClient(client.getSocket(), Communication.PASSWORD);
         String password = readFromClient(client.getSocket());
-
+    
+        boolean authSuccess = false;
+        int userRank = -1;
+    
         userDatabase_lock.lock();
-        boolean authSuccess = userDatabase.authenticate(username, password);
-
-        // get the rank of current user
-        if (authSuccess) {
-            int userRank = userDatabase.getUserRank(username);
-            client.setRank(userRank);
+        try {
+            if (isUserLoggedIn(username)) {
+                writeToClient(client.getSocket(), Communication.AUTH_ALREADY_LOGGED_IN);
+                System.out.println("[AUTH] " + username + " is already logged in");
+                return false;
+            }
+    
+            authSuccess = userDatabase.authenticate(username, password);
+            if (authSuccess) {
+                userRank = userDatabase.getUserRank(username);
+                client.setRank(userRank);
+                loggedInUsers.add(username);
+            }
+        } finally {
+            userDatabase_lock.unlock();
         }
-        userDatabase_lock.unlock();
-
-        if (isUserLoggedIn(username)) {
-            writeToClient(client.getSocket(), Communication.AUTH_ALREADY_LOGGED_IN);
-            System.out.println("[AUTH] " + username + " is already logged in");
+    
+        if (!authSuccess) {
+            writeToClient(client.getSocket(), Communication.AUTH_FAIL);
+            System.out.println("[AUTH] " + username + " failed authentication");
+            client.getSocket().close();
             return false;
         }
-
-        return authSuccess;
+    
+        return true;
     }
 
     private void handleClientRegistration(Client client) throws IOException {
@@ -354,6 +366,7 @@ public class Server {
     // Starts a new game with players (Clients) in playerList
     private void startNewGame(List<Client> playerList) throws IOException {
         gameId_lock.lock();
+        userDatabase_lock.lock();
         try {
             Game game = new Game(gameId++, new ArrayList<>(playerList), userDatabase, userDatabase_lock, this);
 
@@ -367,6 +380,7 @@ public class Server {
             String log = String.format("[Game %d] Started Game", game.getId());
             System.out.println(log);
         } finally {
+            userDatabase_lock.unlock();
             gameId_lock.unlock();
         }
     }
