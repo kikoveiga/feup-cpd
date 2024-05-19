@@ -162,7 +162,7 @@ public class Server {
             writeToClient(client.getSocket(), Communication.AUTH_SUCCESS);
             assignToken(client);
             userLoggedIn(client.getUsername());
-            addClientToQueue(client);
+            addClientToQueuePos(client, -1);
         } else {
             System.out.println("[AUTH] " + (client.getUsername() != null ? client.getUsername() : "Client") + " failed authentication");
             writeToClient(client.getSocket(), Communication.AUTH_FAIL);
@@ -171,11 +171,11 @@ public class Server {
     }
 
     private boolean authenticateClient(Client client) throws IOException{
-        writeToClient(client.getSocket(), Communication.USERNAME);
+        writeToClient(client.getSocket(), Communication.REGISTER_USERNAME);
         String username = readFromClient(client.getSocket());
         client.setUsername(username);
 
-        writeToClient(client.getSocket(), Communication.PASSWORD);
+        writeToClient(client.getSocket(), Communication.REGISTER_PASSWORD);
         String password = readFromClient(client.getSocket());
 
         userDatabase_lock.lock();
@@ -199,23 +199,23 @@ public class Server {
 
     private void handleClientRegistration(Client client) throws IOException {
         if (registerClient(client)) {
-            System.out.println("[AUTH] " + client.getUsername() + " registered successfully");
+            System.out.println("[REGISTRATION] " + client.getUsername() + " registered successfully");
             writeToClient(client.getSocket(), Communication.REGISTER_SUCCESS);
             handleClient(client.getSocket());
 
         } else {
             writeToClient(client.getSocket(), Communication.REGISTER_FAIL);
-            System.out.println("[AUTH] " + (client.getUsername() != null ? client.getUsername() : "Client") + " failed registration");
+            System.out.println("[REGISTRATION] " + (client.getUsername() != null ? client.getUsername() : "Client") + " failed registration");
             client.getSocket().close();
         }
     }
 
     private boolean registerClient(Client client) throws IOException {
-        writeToClient(client.getSocket(), Communication.USERNAME);
+        writeToClient(client.getSocket(), Communication.REGISTER_USERNAME);
         String username = readFromClient(client.getSocket());
         client.setUsername(username);
 
-        writeToClient(client.getSocket(), Communication.PASSWORD);
+        writeToClient(client.getSocket(), Communication.REGISTER_USERNAME);
         String password = readFromClient(client.getSocket());
 
         if (username == null || password == null || username.isEmpty() || password.isEmpty()) {
@@ -225,7 +225,7 @@ public class Server {
         userDatabase_lock.lock();
         try {
             userDatabase.createUser(username, password);
-            String log = String.format("[AUTH] New account created -> %s:%s", username, password);
+            String log = String.format("[REGISTRATION] New account created -> %s:%s", username, password);
             System.out.println(log);
 
         } catch (IOException e) {
@@ -247,25 +247,22 @@ public class Server {
         System.out.println("[AUTH] Client failed registration: " + e.getMessage());
     }
 
-    // Adds a Client to the clientQueue
-    private void addClientToQueue(Client client) throws IOException{
-        clientQueue_lock.lock();
-        clientQueue.add(client);
-        notifyClientPosition(client, clientQueue.size());
-        String log = String.format("[QUEUE] Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
-        System.out.println(log);
-        checkForNewGame();
-        clientQueue_lock.unlock();
-    }
-
-    // TODO -> refactor this to the previous function
     // Adds a Client to the clientQueue with specific pos
     private void addClientToQueuePos(Client client, int queuePos) throws IOException{
         clientQueue_lock.lock();
-        clientQueue.add(queuePos - 1, client);
-        notifyClientPosition(client, queuePos);
+        if (queuePos == -1) {
+            clientQueue.add(client);
+            notifyClientPosition(client, clientQueue.size());
+        }
+
+        else {
+            clientQueue.add(queuePos - 1, client);
+            notifyClientPosition(client, queuePos);
+        }
+
         String log = String.format("[QUEUE] Client %s was added to the Queue (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
         System.out.println(log);
+        checkForNewGame();
         clientQueue_lock.unlock();
     }
 
@@ -507,7 +504,7 @@ public class Server {
             writeToClient(client.getSocket(), messageToClient);
             addClientToQueuePos(client, queuePos);
         } else {
-            System.out.println("[RECONNECT] Cient reconnection failed");
+            System.out.println("[RECONNECT] Client reconnection failed");
             writeToClient(client.getSocket(), Communication.RECONNECT_FAIL);
             client.getSocket().close();
         }
@@ -534,7 +531,7 @@ public class Server {
                 }
                 client.setUsername(clientUsername);
                 userLoggedIn(clientUsername);
-                System.out.println("[RECONENCT] " + clientUsername + " reconnected with token");
+                System.out.println("[RECONNECT] " + clientUsername + " reconnected with token");
                 return true;
             }
             return false;
@@ -576,7 +573,7 @@ public class Server {
         }
     }
 
-    // Asks a client if he wasnt to requeue or exit
+    // Asks a client if he wants to requeue or exit
     public void requeueOrExit(Client client) {
         try {
             writeToClient(client.getSocket(), Communication.REQUEUE_OR_QUIT);
@@ -584,7 +581,7 @@ public class Server {
 
             switch (clientAnswer) {
                 case Communication.REQUEUE:
-                    addClientToQueue(client);
+                    addClientToQueuePos(client, -1);
                     break;
     
                 case Communication.QUIT:

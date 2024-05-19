@@ -70,12 +70,12 @@ public class Client {
 
     private void handleAuthentication(String serverMessage) throws IOException {
         switch (serverMessage) {
-            case Communication.USERNAME:
+            case Communication.AUTH_USERNAME:
                 String username = enterUsername();
                 setUsername(username);
                 sendMessageToServer(username);
                 break;
-            case Communication.PASSWORD:
+            case Communication.AUTH_PASSWORD:
                 String password = enterPassword();
                 sendMessageToServer(password);
                 break;
@@ -126,7 +126,7 @@ public class Client {
         }
         else if (serverMessage.startsWith("RECONNECT")) {
             handleServerReconnection(serverMessage);
-        } else if (serverMessage.startsWith("REGISTER")) {
+        } else if (Communication.REGISTER_MESSAGES.contains(serverMessage)) {
             handleRegistration(serverMessage);
         } else if (serverMessage.equals(Communication.PROVIDE_ANSWER)) {
             handleQuestionAnswer();
@@ -158,11 +158,19 @@ public class Client {
 
     private void handleRegistration(String serverMessage) throws IOException{
         switch (serverMessage) {
+            case Communication.REGISTER_USERNAME:
+                String username = enterUsername();
+                sendMessageToServer(username);
+                break;
+            case Communication.REGISTER_PASSWORD:
+                String password = enterPassword();
+                sendMessageToServer(password);
+                break;
             case Communication.REGISTER_SUCCESS:
-                System.out.println("Account created successfully.");
+                System.out.println("Account created successfully. You can now log in.\n");
                 break;
             case Communication.REGISTER_FAIL:
-                System.out.println("Account creation failed. Disconnecting...");
+                System.out.println("Account creation failed. Disconnecting...\n");
                 socket.close();
                 break;
             default:
@@ -199,7 +207,7 @@ public class Client {
             FileWriter writer = new FileWriter(file, false);
             writer.write(sessionToken);
             writer.close();
-            System.out.println("Token stored successfully.");
+            System.out.println("Token stored successfully.\n");
         } catch (IOException e) {
             System.out.println("Error storing token: " + e.getMessage());
         }
