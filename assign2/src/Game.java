@@ -86,7 +86,14 @@ public class Game {
         } else {
             broadcastMessage("Game Over! No winner.");
         }
-        server.reQueuePlayers(playerList);
+
+        playerList_lock.lock();
+        try {
+            server.reQueuePlayers(playerList);
+        } finally {
+            playerList_lock.unlock();
+        }
+
         playerThreadPool.shutdown();
     }
 
@@ -108,13 +115,18 @@ public class Game {
     }
 
     private void broadcastMessage(String message) {
-        playerList.forEach(player -> {
-            try {
-                Server.writeToClient(player.getSocket(), message);
-            } catch (IOException e) {
-                System.out.println("Error communicating with Client: " + e.getMessage());
-            }
-        });
+        playerList_lock.lock();
+        try {
+            playerList.forEach(player -> {
+                try {
+                    Server.writeToClient(player.getSocket(), message);
+                } catch (IOException e) {
+                    System.out.println("Error communicating with Client: " + e.getMessage());
+                }
+            });
+        } finally {
+            playerList_lock.unlock();
+        }
     }
 
     private void askQuestionToAllPlayers() {
@@ -123,15 +135,20 @@ public class Game {
 
         CountDownLatch latch = new CountDownLatch(2);
         
-        playerList.forEach(player -> 
-            playerThreadPool.execute(() -> {
-                try {
-                    handlePlayerAnswer(player, question.getCorrectAnswer(), latch);
-                } catch (Exception e) {
-                    Server.serverLog("Server exception: " + e.getMessage());
-                }
-            })
-        );
+        playerList_lock.lock();
+        try {
+            playerList.forEach(player -> 
+                playerThreadPool.execute(() -> {
+                    try {
+                        handlePlayerAnswer(player, question.getCorrectAnswer(), latch);
+                    } catch (Exception e) {
+                        Server.serverLog("Server exception: " + e.getMessage());
+                    }
+                })
+            );
+        } finally {
+            playerList_lock.unlock();
+        }
 
         try {
             latch.await();  // Wait for both players to answer
@@ -171,7 +188,12 @@ public class Game {
 
     // Given 'player' returns it's oponent
     private Client opponent(Client player) {
-        if (playerList.get(0).equals(player)) return playerList.get(1);
-        return playerList.get(0);
+        playerList_lock.lock();
+        try {
+            if (playerList.get(0).equals(player)) return playerList.get(1);
+            return playerList.get(0);
+        } finally {
+            playerList_lock.unlock();
+        }
     }
 }
