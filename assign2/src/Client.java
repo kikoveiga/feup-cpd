@@ -75,18 +75,17 @@ public class Client {
     // Handle client authentication
     private void handleAuthentication(String serverMessage) throws IOException {
         switch (serverMessage) {
-            case Communication.USERNAME:
+            case Communication.AUTH_USERNAME:
                 String username = enterUsername();
                 setUsername(username);
                 sendMessageToServer(username);
                 break;
-            case Communication.PASSWORD:
+            case Communication.AUTH_PASSWORD:
                 String password = enterPassword();
                 sendMessageToServer(password);
                 break;
             case Communication.AUTH_FAIL:
                 System.out.println("Authentication failed. Disconnecting...");
-                socket.close();
                 break;
             case Communication.AUTH_ALREADY_LOGGED_IN:
                 System.out.println("User is already logged in.");
@@ -96,7 +95,6 @@ public class Client {
                 break;
             case Communication.CLIENT_DISCONNECT:
                 System.out.println("Disconnected from server.");
-                socket.close();
                 break;
 
             default:
@@ -113,12 +111,12 @@ public class Client {
             System.out.println("You are already logged in.");
         } else if (serverMessage.equals(Communication.RECONNECT_FAIL)) {
             System.out.println("Reconnection failed. Disconnecting...");
-            this.socket.close();
-        } 
+        }
     }
 
     // Main state machine to handle messages received from server
     private void handleServerMessage(String serverMessage) throws IOException {
+
         if (serverMessage.equals(Communication.PING)) {
             sendMessageToServer(Communication.PONG);
         } else if (Communication.AUTH_MESSAGES.contains(serverMessage)) {
@@ -132,7 +130,7 @@ public class Client {
         }
         else if (serverMessage.startsWith("RECONNECT")) {
             handleServerReconnection(serverMessage);
-        } else if (serverMessage.startsWith("REGISTER")) {
+        } else if (Communication.REGISTER_MESSAGES.contains(serverMessage)) {
             handleRegistration(serverMessage);
         } else if (serverMessage.equals(Communication.PROVIDE_ANSWER)) {
             handleQuestionAnswer();
@@ -149,7 +147,7 @@ public class Client {
         System.out.print("True or False? ");
         try {
             String answer = consoleReader.readLine();
-            if (!validateAnswer(answer)) {
+            if (answer == null || answer.isEmpty() || !validateAnswer(answer)) {
                 System.out.println("Invalid answer!");
                 handleQuestionAnswer();
             }
@@ -167,12 +165,19 @@ public class Client {
     // State machine that handles account creation communication with server
     private void handleRegistration(String serverMessage) throws IOException{
         switch (serverMessage) {
+            case Communication.REGISTER_USERNAME:
+                String username = enterUsername();
+                sendMessageToServer(username);
+                break;
+            case Communication.REGISTER_PASSWORD:
+                String password = enterPassword();
+                sendMessageToServer(password);
+                break;
             case Communication.REGISTER_SUCCESS:
-                System.out.println("Account created successfully.");
+                System.out.println("Account created successfully. You can now log in.\n");
                 break;
             case Communication.REGISTER_FAIL:
-                System.out.println("Account creation failed. Disconnecting...");
-                socket.close();
+                System.out.println("Account creation failed. Disconnecting...\n");
                 break;
             default:
                 break;
@@ -209,7 +214,7 @@ public class Client {
             FileWriter writer = new FileWriter(file, false);
             writer.write(sessionToken);
             writer.close();
-            System.out.println("Token stored successfully.");
+            System.out.println("Token stored successfully.\n");
         } catch (IOException e) {
             System.out.println("Error storing token: " + e.getMessage());
         }
@@ -228,7 +233,6 @@ public class Client {
         } catch (IOException e) {
             System.out.println("Your session token is invalid");
             System.out.println("Disconnecting...");
-            this.socket.close();
             return null;
         }
     }

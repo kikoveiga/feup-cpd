@@ -5,20 +5,31 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.UUID;
 
 public class UserDatabase {
     private static final String FILE_PATH = "src/database/users.json";
     private Map<String, User> users;
+    private final HashSet<String> loggedInUsers = new HashSet<>();
     private final ObjectMapper objectMapper;
-    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    private BCryptPasswordEncoder tokenEncoder = new BCryptPasswordEncoder();
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final BCryptPasswordEncoder tokenEncoder = new BCryptPasswordEncoder();
 
     public UserDatabase() throws IOException {
         this.objectMapper = new ObjectMapper();
         loadUsers();
     }
+
+    // Adds user to loggedInUsers
+    void userLoggedIn(String username) { loggedInUsers.add(username); }
+
+    // Removes user from loggedInUsers
+    void userLoggedOut(String username) { loggedInUsers.remove(username); }
+
+    // Checks if user is logged in
+    boolean isUserLoggedIn(String username) { return loggedInUsers.contains(username); }
 
     // Loads users from database file
     private void loadUsers() throws IOException {
