@@ -12,7 +12,6 @@ public class Client {
     private final BufferedReader serverReader;
     private final PrintWriter serverWriter;
     private int currentScore;
-    private String sessionToken;
 
     public Client(Socket socket) throws IOException {
         this.socket = socket;
@@ -39,14 +38,6 @@ public class Client {
 
     public void setRank(int rank) {
         this.rank = rank;
-    }
-
-    public void setSessionToken(String sessionToken) {
-        this.sessionToken = sessionToken;
-    }
-
-    public void clearSessionToken() {
-        this.sessionToken = "";
     }
 
     public long getLastResponseTime() {
@@ -127,8 +118,7 @@ public class Client {
             handleServerWelcome();
         } else if (serverMessage.equals(Communication.REQUEST_TOKEN)) {
             sendMessageToServer(retrieveToken());
-        }
-        else if (serverMessage.startsWith("RECONNECT")) {
+        } else if (serverMessage.startsWith("RECONNECT")) {
             handleServerReconnection(serverMessage);
         } else if (Communication.REGISTER_MESSAGES.contains(serverMessage)) {
             handleRegistration(serverMessage);
@@ -136,8 +126,7 @@ public class Client {
             handleQuestionAnswer();
         } else if (serverMessage.equals(Communication.REQUEUE_OR_QUIT)) {
             handleRequeueOrExit();
-        }
-        else {
+        } else {
             System.out.println(serverMessage);
         }
     }
