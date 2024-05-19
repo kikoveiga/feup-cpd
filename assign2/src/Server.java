@@ -40,6 +40,7 @@ public class Server {
     // - Ranked Mode -
     // Maximum difference between player's Ranks
     private int MATCHMAKING_MAX_DIFF = 100;
+    private int MATCHMAKING_RELAX = 100; 
 
     // {username : position}
     // Stores the client's queue position when he disconnects
@@ -228,6 +229,7 @@ public class Server {
                     if (playerList != null) {
                         removeClientsFromQueue(playerList);
                         startNewGame(playerList);
+                        MATCHMAKING_MAX_DIFF = 100;
                     }
             }
         }
@@ -407,9 +409,8 @@ public class Server {
         }
     }
 
+    // Amount of Rank to relax (add to MATCHMAKING_MAX_DIFF)
     private void relaxMatchmaking() {
-        // Amount of Rank to relax (add to MATCHMAKING_MAX_DIFF)
-        int MATCHMAKING_RELAX = 100;
         MATCHMAKING_MAX_DIFF += MATCHMAKING_RELAX;
         System.out.println("[MATCHMAKING] Increased Max Difference to " + MATCHMAKING_MAX_DIFF);
     }
@@ -538,7 +539,30 @@ public class Server {
 
     public void reQueuePlayers(List<Client> clients) throws IOException {
         for (Client client : clients) {
-            addClientToQueue(client);
+            requeueOrExit(client);
+        }
+    }
+
+    // Asks a client if he wasnt to requeue or exit
+    public void requeueOrExit(Client client) {
+        try {
+            writeToClient(client.getSocket(), Communication.REQUEUE_OR_QUIT);
+            String clientAnswer = readFromClient(client.getSocket());
+
+            switch (clientAnswer) {
+                case Communication.REQUEUE:
+                    addClientToQueue(client);
+                    break;
+    
+                case Communication.QUIT:
+                    client.getSocket().close();
+                    break;
+            
+                default:
+                    break;
+            }
+        } catch (IOException e) {
+            serverLog("Failed!");
         }
     }
 
