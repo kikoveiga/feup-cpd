@@ -37,7 +37,11 @@ Again, replace port with the same port number used to start the server.
 
 ## User Database
 
+### Overview
+
 We employ a simple JSON-based database to store user credentials securely. For enhanced security, all passwords are encrypted using bcrypt, ensuring sensitive information is well-protected.
+
+### Default Credentials
 
 For demonstration purposes, the database includes these default credentials:
 
@@ -65,6 +69,10 @@ To maintain data integrity and prevent race conditions in concurrent operations,
 
 ## Server-Client Communication
 
+### Overview
+
 Communication between the server and clients is facilitated through socket programming, ensuring real-time, bidirectional data exchange. Both the server and client utilize state machines to manage communication states effectively.
+
+### Protocol and Macros
 
 The specific protocol rules and message formats used during socket communication are defined in the **Communication** class. This class contains macros that standardize the message structure, making it easier to parse and handle different types of communication events consistently across the system.
