@@ -570,15 +570,6 @@ public class Server {
         }
     }
 
-    private void handleRegistrationError(Client client, Exception e) {
-        try {
-            writeToClient(client.getSocket(), Communication.REGISTER_FAIL);
-        } catch (IOException e2) {
-            System.out.println("[AUTH] Error communicating with Client: " + e.getMessage());
-        }
-        System.out.println("[AUTH] Client failed registration: " + e.getMessage());
-    }
-
     public void reQueuePlayers(List<Client> clients) throws IOException {
         for (Client client : clients) {
             requeueOrExit(client);
@@ -608,7 +599,6 @@ public class Server {
         }
     }
 
->>>>>>> assign2/src/Server.java
     public static void main(String[] args) {
         if (args.length < 1) return;
 
