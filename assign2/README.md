@@ -62,3 +62,9 @@ To maintain data integrity and prevent race conditions in concurrent operations,
 - **Reentrant Locks**: We use ReentrantLock for critical sections that might be accessed concurrently. This type of lock is advantageous because it allows the thread holding the lock to lock it multiple times before unlocking, which is crucial for operations where nested method calls require the same lock.
 
 - **Lock Management:** Each critical section or shared resource is protected using these locks. This ensures that only one thread can modify the state at any given time, thereby preventing inconsistencies and ensuring thread safety.
+
+## Server-Client Communication
+
+Communication between the server and clients is facilitated through socket programming, ensuring real-time, bidirectional data exchange. Both the server and client utilize state machines to manage communication states effectively.
+
+The specific protocol rules and message formats used during socket communication are defined in the **Communication** class. This class contains macros that standardize the message structure, making it easier to parse and handle different types of communication events consistently across the system.
