@@ -11,6 +11,7 @@ public class Client {
     private final BufferedReader consoleReader;
     private final BufferedReader serverReader;
     private final PrintWriter serverWriter;
+    private int currentScore;
     private String sessionToken;
 
     public Client(Socket socket) throws IOException {
@@ -56,8 +57,15 @@ public class Client {
         this.lastResponseTime = System.currentTimeMillis();
     }
 
-    private void sendMessageToServer(String message) {
+    public void sendMessageToServer(String message) {
         serverWriter.println(message);
+    }
+
+    public int getScore() {
+        return currentScore;
+    }
+    public void incrementScore() {
+        this.currentScore++;
     }
 
     private void handleAuthentication(String serverMessage) throws IOException {
@@ -115,10 +123,33 @@ public class Client {
             handleServerReconnection(serverMessage);
         } else if (serverMessage.startsWith("REGISTER")) {
             handleRegistration(serverMessage);
+        } else if (serverMessage.equals(Communication.PROVIDE_ANSWER)) {
+            handleQuestionAnswer();
         }
         else {
             System.out.println(serverMessage);
         }
+    }
+
+    private void handleQuestionAnswer() {
+        System.out.print("True or False? ");
+        try {
+            String answer = consoleReader.readLine();
+            if (!validateAnswer(answer)) {
+                System.out.println("Invalid answer!");
+                handleQuestionAnswer();
+            }
+            sendMessageToServer(answer);
+        } catch (IOException e) {
+            System.out.println("Error getting answer");
+        }
+    }
+
+    private boolean validateAnswer(String answer) {
+        if (answer.equalsIgnoreCase("true") || answer.equalsIgnoreCase("false")) {
+            return true;
+        }
+        return false;
     }
 
     private void handleRegistration(String serverMessage) throws IOException{
