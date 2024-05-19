@@ -14,7 +14,6 @@ javac -cp "lib/*" -d out src/*.java src/game_logic/*.java
 
 This command includes all libraries located in the lib directory in the classpath and compiles all Java files in the src and src/game_logic directories.
 
-
 ### Running the Server
 
 Start the server by specifying a port number on which the server will listen for incoming client connections. Ensure that the out directory is included in the classpath along with the libraries:
@@ -35,6 +34,16 @@ java -cp "lib/*:out" Client localhost <port>
 ```
 
 Again, replace port with the same port number used to start the server.
+
+## User Database
+
+We employ a simple JSON-based database to store user credentials securely. For enhanced security, all passwords are encrypted using bcrypt, ensuring sensitive information is well-protected.
+
+For demonstration purposes, the database includes these default credentials:
+
+- Username: **user1** | Password: **password1**
+- Username: **user2** | Password: **password2**
+- Username: **user3** | Password: **password3**
 
 ## Multi-threading Strategy
 
