@@ -81,7 +81,6 @@ public class Client {
                 break;
             case Communication.AUTH_FAIL:
                 System.out.println("Authentication failed. Disconnecting...");
-                socket.close();
                 break;
             case Communication.AUTH_ALREADY_LOGGED_IN:
                 System.out.println("User is already logged in.");
@@ -91,7 +90,6 @@ public class Client {
                 break;
             case Communication.CLIENT_DISCONNECT:
                 System.out.println("Disconnected from server.");
-                socket.close();
                 break;
 
             default:
@@ -107,12 +105,12 @@ public class Client {
             System.out.println("You are already logged in.");
         } else if (serverMessage.equals(Communication.RECONNECT_FAIL)) {
             System.out.println("Reconnection failed. Disconnecting...");
-            this.socket.close();
-        } 
+        }
     }
 
     // TODO -> REFACTOR THIS
     private void handleServerMessage(String serverMessage) throws IOException {
+
         if (serverMessage.equals(Communication.PING)) {
             sendMessageToServer(Communication.PONG);
         } else if (Communication.AUTH_MESSAGES.contains(serverMessage)) {
@@ -142,7 +140,7 @@ public class Client {
         System.out.print("True or False? ");
         try {
             String answer = consoleReader.readLine();
-            if (!validateAnswer(answer)) {
+            if (answer == null || answer.isEmpty() || !validateAnswer(answer)) {
                 System.out.println("Invalid answer!");
                 handleQuestionAnswer();
             }
@@ -171,7 +169,6 @@ public class Client {
                 break;
             case Communication.REGISTER_FAIL:
                 System.out.println("Account creation failed. Disconnecting...\n");
-                socket.close();
                 break;
             default:
                 break;
@@ -226,7 +223,6 @@ public class Client {
         } catch (IOException e) {
             System.out.println("Your session token is invalid");
             System.out.println("Disconnecting...");
-            this.socket.close();
             return null;
         }
     }

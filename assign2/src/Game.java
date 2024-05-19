@@ -14,15 +14,15 @@ import game_logic.TriviaResponse;
 import game_logic.TriviaResult;
 
 public class Game {
-    private int gameId;
-    private List<Client> playerList;
+    private final int gameId;
+    private final List<Client> playerList;
     private final Lock playerList_lock = new ReentrantLock();
     private TriviaResponse triviaResponse;
     private volatile boolean isGameRunning;
     private final int ROUNDS = 4;
-    private ExecutorService playerThreadPool;
-    private UserDatabase userDatabase;
-    private ReentrantLock userDatabase_lock;
+    private final ExecutorService playerThreadPool;
+    private final UserDatabase userDatabase;
+    private final ReentrantLock userDatabase_lock;
     private final Server server;
 
     // Amount of rank a player wins (or looses) at the end of a game
@@ -43,7 +43,8 @@ public class Game {
         File jsonFile = new File(dataPath);
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            triviaResponse = objectMapper.readValue(jsonFile, new TypeReference<TriviaResponse>() {});
+            triviaResponse = objectMapper.readValue(jsonFile, new TypeReference<>() {
+            });
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -71,7 +72,6 @@ public class Game {
         }
         endGame();
     }
-
 
     private void endGame() throws IOException {
         isGameRunning = false;
@@ -133,7 +133,6 @@ public class Game {
             latch.await();  // Wait for both players to answer
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return;
         }
     }
 
@@ -141,11 +140,19 @@ public class Game {
         try {
             Server.writeToClient(player.getSocket(), Communication.PROVIDE_ANSWER);
             String answer = Server.readFromClient(player.getSocket());
-            if (answer.equalsIgnoreCase(correctAnswer)) {
+            if (answer == null) {
+                Server.serverLog("Player " + player.getUsername() + " disconnected.");
+                userDatabase_lock.lock();
+                try {
+                    userDatabase.userLoggedOut(player.getUsername());
+                } finally { userDatabase_lock.unlock(); }
+
+            }
+            else if (answer.equalsIgnoreCase(correctAnswer)) {
                 player.incrementScore();
-                Server.writeToClient(player.getSocket(), "Correct! Your score: " + player.getScore());
+                Server.writeToClient(player.getSocket(), "Correct! Your score: " + player.getScore() + '\n');
             } else {
-                Server.writeToClient(player.getSocket(), "Incorrect! Correct answer was: " + correctAnswer);
+                Server.writeToClient(player.getSocket(), "Incorrect! Correct answer was: " + correctAnswer + '\n');
             }
         } catch (IOException e) {
             System.out.println("Error communicating with Client: " + e.getMessage());

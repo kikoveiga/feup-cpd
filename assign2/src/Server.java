@@ -17,8 +17,6 @@ public class Server {
     // General Info
     private final int MAX_NUMBER_GAMES = 5;
     private final int PLAYERS_PER_GAME = 2;
-    private final Set<String> loggedInUsers;
-    private final ReentrantLock loggedInUsers_lock = new ReentrantLock();
 
     // Client Queue
     private final List<Client> clientQueue;
@@ -52,7 +50,6 @@ public class Server {
         this.gameList = new ArrayList<>();
         this.userDatabase = new UserDatabase();
         this.gameMode = gameMode;
-        this.loggedInUsers = new HashSet<>();
         this.gameThreadPool = Executors.newVirtualThreadPerTaskExecutor();
 
         File directory = new File("src/database/tokens/");
@@ -81,7 +78,7 @@ public class Server {
         this.reconnectPosition = new HashMap<>();
     }
 
-    public static void writeToClient(Socket clientSocket, String message) throws IOException{
+    public static void writeToClient(Socket clientSocket, String message) throws IOException {
         OutputStream output = clientSocket.getOutputStream();
         PrintWriter writer = new PrintWriter(output, true);
         writer.println(message);
@@ -137,31 +134,11 @@ public class Server {
         return readFromClient(client.getSocket());
     }
 
-    private void userLoggedIn(String username) {
-        loggedInUsers_lock.lock();
-        try { loggedInUsers.add(username); }
-        finally { loggedInUsers_lock.unlock(); }
-    }
-
-    private void userLoggedOut(String username) {
-        loggedInUsers_lock.lock();
-        loggedInUsers.remove(username);
-        loggedInUsers_lock.unlock();
-    }
-
-    private boolean isUserLoggedIn(String username) {
-        loggedInUsers_lock.lock();
-        boolean result = loggedInUsers.contains(username);
-        loggedInUsers_lock.unlock();
-        return result;
-    }
-
     private void handleClientAuthentication(Client client) throws IOException{
         if (authenticateClient(client)) {
             System.out.println("[AUTH] " + client.getUsername() + " authenticated successfully");
             writeToClient(client.getSocket(), Communication.AUTH_SUCCESS);
             assignToken(client);
-            userLoggedIn(client.getUsername());
             addClientToQueuePos(client, -1);
         } else {
             System.out.println("[AUTH] " + (client.getUsername() != null ? client.getUsername() : "Client") + " failed authentication");
@@ -171,28 +148,31 @@ public class Server {
     }
 
     private boolean authenticateClient(Client client) throws IOException{
-        writeToClient(client.getSocket(), Communication.REGISTER_USERNAME);
+        writeToClient(client.getSocket(), Communication.AUTH_USERNAME);
         String username = readFromClient(client.getSocket());
         client.setUsername(username);
 
-        writeToClient(client.getSocket(), Communication.REGISTER_PASSWORD);
+        writeToClient(client.getSocket(), Communication.AUTH_PASSWORD);
         String password = readFromClient(client.getSocket());
 
         userDatabase_lock.lock();
         boolean authSuccess = userDatabase.authenticate(username, password);
 
-        // get the rank of current user
-        if (authSuccess) {
-            int userRank = userDatabase.getUserRank(username);
-            client.setRank(userRank);
-        }
-        userDatabase_lock.unlock();
-
-        if (isUserLoggedIn(username)) {
+        if (authSuccess && userDatabase.isUserLoggedIn(username)) {
             writeToClient(client.getSocket(), Communication.AUTH_ALREADY_LOGGED_IN);
             System.out.println("[AUTH] " + username + " is already logged in");
+            userDatabase_lock.unlock();
             return false;
         }
+
+        // get the rank of current user
+        else if (authSuccess && !userDatabase.isUserLoggedIn(username)) {
+            int userRank = userDatabase.getUserRank(username);
+            client.setRank(userRank);
+            userDatabase.userLoggedIn(username);
+        }
+
+        userDatabase_lock.unlock();
 
         return authSuccess;
     }
@@ -215,7 +195,7 @@ public class Server {
         String username = readFromClient(client.getSocket());
         client.setUsername(username);
 
-        writeToClient(client.getSocket(), Communication.REGISTER_USERNAME);
+        writeToClient(client.getSocket(), Communication.REGISTER_PASSWORD);
         String password = readFromClient(client.getSocket());
 
         if (username == null || password == null || username.isEmpty() || password.isEmpty()) {
@@ -228,7 +208,7 @@ public class Server {
             String log = String.format("[REGISTRATION] New account created -> %s:%s", username, password);
             System.out.println(log);
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             handleRegistrationError(client, e);
             return false;
         } finally {
@@ -242,9 +222,9 @@ public class Server {
         try {
             writeToClient(client.getSocket(), Communication.REGISTER_FAIL);
         } catch (IOException e2) {
-            System.out.println("[AUTH] Error communicating with Client: " + e.getMessage());
+            System.out.println("[REGISTRATION] Error communicating with Client: " + e.getMessage());
         }
-        System.out.println("[AUTH] Client failed registration: " + e.getMessage());
+        System.out.println("[REGISTRATION] Client failed registration: " + e.getMessage());
     }
 
     // Adds a Client to the clientQueue with specific pos
@@ -384,7 +364,7 @@ public class Server {
                 if (!pingClient(client)) {
                     storeQueuePosition(client);
                     iterator.remove();
-                    userLoggedOut(client.getUsername());
+                    userDatabase.userLoggedOut(client.getUsername());
                     String log = String.format("[QUEUE] Client %s disconnected (%d/%d)", client.getUsername(), clientQueue.size(), PLAYERS_PER_GAME);
                     System.out.println(log);
                     client.getSocket().close();
@@ -525,12 +505,12 @@ public class Server {
             String clientUsername = userDatabase.getUsernameFromToken(providedToken);
             if (clientUsername != null) { // success
 
-                if (isUserLoggedIn(clientUsername)) {
+                if (userDatabase.isUserLoggedIn(clientUsername)) {
                     writeToClient(client.getSocket(), Communication.RECONNECT_ALREADY_LOGGED_IN);
                     return false;
                 }
                 client.setUsername(clientUsername);
-                userLoggedIn(clientUsername);
+                userDatabase.userLoggedIn(clientUsername);
                 System.out.println("[RECONNECT] " + clientUsername + " reconnected with token");
                 return true;
             }
@@ -578,6 +558,11 @@ public class Server {
         try {
             writeToClient(client.getSocket(), Communication.REQUEUE_OR_QUIT);
             String clientAnswer = readFromClient(client.getSocket());
+
+            if (clientAnswer == null || clientAnswer.isEmpty()) {
+                client.getSocket().close();
+                return;
+            }
 
             switch (clientAnswer) {
                 case Communication.REQUEUE:
