@@ -263,14 +263,6 @@ public class Client {
         return password;
     }
 
-    private void handleRegister() throws IOException {
-        System.out.println("Create your account!");
-        String username = enterUsername();
-        String password = enterPassword();
-        String msgToServer = String.format("%s %s %s", Communication.CLIENT_REGISTER, username, password);
-        sendMessageToServer(msgToServer);
-    }
-
     // Handles server welcome message (first message received upon connection)
     private void handleServerWelcome() throws IOException{
         System.out.println("1. Log In");

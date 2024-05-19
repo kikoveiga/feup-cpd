@@ -15,7 +15,6 @@ public class Server {
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     // General Info
-    private final int MAX_NUMBER_GAMES = 5;
     private final int PLAYERS_PER_GAME = 2;
 
     // Client Queue
@@ -160,25 +159,28 @@ public class Server {
 
         writeToClient(client.getSocket(), Communication.AUTH_PASSWORD);
         String password = readFromClient(client.getSocket());
-        
+
+        boolean authSuccess = false;
+
         userDatabase_lock.lock();
-        boolean authSuccess = userDatabase.authenticate(username, password);
+        try {
+            authSuccess = userDatabase.authenticate(username, password);
 
-        if (authSuccess && userDatabase.isUserLoggedIn(username)) {
-            writeToClient(client.getSocket(), Communication.AUTH_ALREADY_LOGGED_IN);
-            System.out.println("[AUTH] " + username + " is already logged in");
+            if (authSuccess && userDatabase.isUserLoggedIn(username)) {
+                writeToClient(client.getSocket(), Communication.AUTH_ALREADY_LOGGED_IN);
+                System.out.println("[AUTH] " + username + " is already logged in");
+                return false;
+            }
+
+            // get the rank of current user
+            else if (authSuccess && !userDatabase.isUserLoggedIn(username)) {
+                int userRank = userDatabase.getUserRank(username);
+                client.setRank(userRank);
+                userDatabase.userLoggedIn(username);
+            }
+        } finally {
             userDatabase_lock.unlock();
-            return false;
         }
-
-        // get the rank of current user
-        else if (authSuccess && !userDatabase.isUserLoggedIn(username)) {
-            int userRank = userDatabase.getUserRank(username);
-            client.setRank(userRank);
-            userDatabase.userLoggedIn(username);
-        }
-
-        userDatabase_lock.unlock();
 
         return authSuccess;
     }
@@ -596,6 +598,7 @@ public class Server {
                     break;
     
                 case Communication.QUIT:
+                    logoutUser(client);
                     client.getSocket().close();
                     break;
             
@@ -604,6 +607,15 @@ public class Server {
             }
         } catch (IOException e) {
             serverLog("Failed!");
+        }
+    }
+
+    private void logoutUser(Client client) {
+        userDatabase_lock.lock();
+        try {
+            userDatabase.userLoggedOut(client.getUsername());
+        } finally {
+            userDatabase_lock.unlock();
         }
     }
 
