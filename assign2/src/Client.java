@@ -71,14 +71,12 @@ public class Client {
     private void handleAuthentication(String serverMessage) throws IOException {
         switch (serverMessage) {
             case Communication.AUTH:
-                System.out.print("Username: ");
-                String username = consoleReader.readLine();
+                String username = enterUsername();
                 setUsername(username);
                 sendMessageToServer(username);
                 break;
             case Communication.PASS:
-                System.out.print("Password: ");
-                String password = consoleReader.readLine();
+                String password = enterPassword();
                 sendMessageToServer(password);
                 break;
             case Communication.AUTH_FAIL:
@@ -146,10 +144,7 @@ public class Client {
     }
 
     private boolean validateAnswer(String answer) {
-        if (answer.equalsIgnoreCase("true") || answer.equalsIgnoreCase("false")) {
-            return true;
-        }
-        return false;
+        return answer.equalsIgnoreCase("true") || answer.equalsIgnoreCase("false");
     }
 
     private void handleRegistration(String serverMessage) throws IOException{
@@ -219,18 +214,36 @@ public class Client {
         }
     }
 
-    private void handleRegister() {
-        try {
-            System.out.println("Create your account!");
+    private String enterUsername() throws IOException {
+        System.out.print("Enter username: ");
+        String username = consoleReader.readLine();
+        while (username.isEmpty() || username.contains(" ")) {
+            System.out.println("Invalid username. Username must not be empty or contain spaces.");
             System.out.print("Enter username: ");
-            String username = consoleReader.readLine();
+            username = consoleReader.readLine();
+        }
+
+        return username;
+    }
+
+    private String enterPassword() throws IOException {
+        System.out.print("Enter password: ");
+        String password = consoleReader.readLine();
+        while (password.isEmpty() || password.contains(" ")) {
+            System.out.println("Invalid password. Password must not be empty or contain spaces.");
             System.out.print("Enter password: ");
-            String password = consoleReader.readLine();
-            String msgToServer = String.format("%s %s %s", Communication.CLIENT_REGISTER, username, password);
-            sendMessageToServer(msgToServer);
-        } catch (IOException e) {
-            System.out.println("Invalid username.");
-        } 
+            password = consoleReader.readLine();
+        }
+
+        return password;
+    }
+
+    private void handleRegister() throws IOException {
+        System.out.println("Create your account!");
+        String username = enterUsername();
+        String password = enterPassword();
+        String msgToServer = String.format("%s %s %s", Communication.CLIENT_REGISTER, username, password);
+        sendMessageToServer(msgToServer);
     }
 
     private void handleServerWelcome() throws IOException{

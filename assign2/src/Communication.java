@@ -7,6 +7,8 @@ public class Communication {
     public static final String CLIENT_AUTH = "CLIENT_AUTH";
     // Client informs Server he wants to reconnect
     public static final String CLIENT_RECONNECT = "CLIENT_RECONNECT";
+    // Client informs server he disconnected
+    public static final String CLIENT_DISCONNECT = "CLIENT_DISCONNECT";
     // Server asks Client for username
     public static final String AUTH = "AUTH";
     // Server asks Client for password

@@ -89,6 +89,10 @@ public class Server {
     public static String readFromClient(Socket clientSocket) throws IOException {
         InputStream input = clientSocket.getInputStream();
         BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+        String line = reader.readLine();
+        if (line == null || line.isEmpty()) {
+            throw new IOException("Client disconnected.");
+        }
         return reader.readLine();
     }
 
@@ -115,9 +119,14 @@ public class Server {
 
             case Communication.CLIENT_REGISTER:
                 System.out.println("[AUTH] A Client is creating a new account");
+
                 String username = clientAction.split(" ")[1];
                 String password = clientAction.split(" ")[2];
                 registerClient(client, username, password);
+                break;
+
+            case Communication.CLIENT_DISCONNECT:
+                System.out.println("[DISCONNECT] A Client disconnected");
                 break;
         
             default:
@@ -130,7 +139,11 @@ public class Server {
     // 2. Reconnect with Token
     private String questionClient(Client client) throws IOException{
         writeToClient(client.getSocket(), Communication.WELCOME);
-        return readFromClient(client.getSocket());
+        try {
+            return readFromClient(client.getSocket());
+        } catch (IOException e) {
+            return Communication.CLIENT_DISCONNECT;
+        }
     }
 
     private void userLoggedIn(String username) {
