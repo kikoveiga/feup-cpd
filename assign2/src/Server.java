@@ -145,15 +145,18 @@ public class Server {
 
     private void userLoggedOut(String username) {
         loggedInUsers_lock.lock();
-        loggedInUsers.remove(username);
-        loggedInUsers_lock.unlock();
+        try { loggedInUsers.remove(username); }
+        finally { loggedInUsers_lock.unlock(); }
     }
 
     private boolean isUserLoggedIn(String username) {
         loggedInUsers_lock.lock();
-        boolean result = loggedInUsers.contains(username);
-        loggedInUsers_lock.unlock();
-        return result;
+        try { 
+            boolean result = loggedInUsers.contains(username); 
+            return result;
+        } finally {
+            loggedInUsers_lock.unlock();
+        }
     }
 
     private void handleClientAuthentication(Client client) throws IOException{
