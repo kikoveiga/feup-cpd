@@ -1,127 +1,136 @@
 import java.io.File;
 import java.io.IOException;
-import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import game_logic.TriviaResponse;
 import game_logic.TriviaResult;
-
 
 public class Game {
     private List<Client> playerList;
     private final Lock playerList_lock = new ReentrantLock();
-
     private TriviaResponse triviaResponse;
-    private boolean isGameRunning;
+    private volatile boolean isGameRunning;
     private final int ROUNDS = 4;
+    private ExecutorService playerThreadPool;
 
     public Game(List<Client> playerList) {
         this.playerList = playerList;
-        this.triviaResponse = triviaResponse;
+        this.triviaResponse = new TriviaResponse();
         this.isGameRunning = false;
+        this.playerThreadPool = Executors.newVirtualThreadPerTaskExecutor();
     }
 
-    // method to load questions into data set
-    public void loadQuestions(String dataPath){
+    public void loadQuestions(String dataPath) {
         File jsonFile = new File(dataPath);
         ObjectMapper objectMapper = new ObjectMapper();
-
         try {
-            // Read JSON file and map to TriviaResponse
             triviaResponse = objectMapper.readValue(jsonFile, new TypeReference<TriviaResponse>() {});
-
-            // Output to verify
-            //triviaResponse.getResults().forEach(q -> System.out.println(q.getQuestion() + " - " + q.getCorrectAnswer()));
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void startGame(){
+    public void startGame() {
         loadQuestions("src/database/questions.json");
         isGameRunning = true;
         broadcastMessage("Welcome to the Trivia!");
-        broadcastMessage("Questions will be given shortly please answer with True or False");
-        // pause time here
+        broadcastMessage("Questions will be given shortly. Please answer with True or False.");
         try {
-            Thread.sleep(5000); // 5 seconds
+            Thread.sleep(5000);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Thread.currentThread().interrupt();
+            return;
         }
-
         loop();
     }
 
-    public void loop() {
-        for (int round = 0; round <= ROUNDS; round++) {
-            if (!isGameRunning) break;
+    private void loop() {
+        for (int round = 0; round < ROUNDS && isGameRunning; round++) {
             askQuestionToAllPlayers();
         }
         endGame();
     }
 
-    public void endGame() {
+
+    private void endGame() {
         isGameRunning = false;
-        //Client winner = determineWinner();
-        //broadcastMessage("Game Over! The winner is: " + winner.getUsername() + " with a score of " + winner.getScore());
-        broadcastMessage("heheh");
+        Client winner = determineWinner();
+        if (winner != null) {
+            broadcastMessage("Game Over! The winner is: " + winner.getUsername() + " with a score of " + winner.getScore());
+        } else {
+            broadcastMessage("Game Over! No winner.");
+        }
     }
 
     private Client determineWinner() {
         Client winner = null;
         int highestScore = -1;
         playerList_lock.lock();
-        for (Client player : playerList) {
-            if (player.getScore() > highestScore) {
-                highestScore = player.getScore();
-                winner = player;
+        try {
+            for (Client player : playerList) {
+                if (player.getScore() > highestScore) {
+                    highestScore = player.getScore();
+                    winner = player;
+                }
             }
+        } finally {
+            playerList_lock.unlock();
         }
-        playerList_lock.unlock();
         return winner;
     }
 
-    // Broadcast a message to all players
-    public void broadcastMessage(String message) {
-        for (Client player : playerList) {
+    private void broadcastMessage(String message) {
+        playerList.forEach(player -> {
             try {
                 Server.writeToClient(player.getSocket(), message);
             } catch (IOException e) {
                 System.out.println("Error communicating with Client: " + e.getMessage());
             }
-        }
+        });
     }
 
     private void askQuestionToAllPlayers() {
-        broadcastMessage("Question: " + triviaResponse.getRandomQuestion().getQuestion());
-        for (Client player : playerList) {
-            handlePlayerAnswer(player);
+        TriviaResult question = triviaResponse.getRandomQuestion();
+        broadcastMessage("Round Question: " + question.getQuestion() + " True or False?");
+
+        CountDownLatch latch = new CountDownLatch(2);
+        
+        playerList.forEach(player -> 
+            playerThreadPool.execute(() -> {
+                handlePlayerAnswer(player, question.getCorrectAnswer(), latch);
+            })
+        );
+
+        try {
+            latch.await();  // Wait for both players to answer
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
         }
     }
 
-    // Handles a player's answer to a question
-    private void handlePlayerAnswer(Client player) {
+    private void handlePlayerAnswer(Client player, String correctAnswer, CountDownLatch latch) {
         try {
-            Server.writeToClient(player.getSocket(), Communication.PROVIDE_ANSWER);
+            Server.writeToClient(player.getSocket(), Communication.PROVIDE_ANSWER   );
             String answer = Server.readFromClient(player.getSocket());
-
-            if (answer.equalsIgnoreCase(triviaResponse.getRandomQuestion().getCorrectAnswer())) {
+            if (answer.equalsIgnoreCase(correctAnswer)) {
                 player.incrementScore();
-                player.sendMessageToServer("Correct! Your score: " + player.getScore());
+                Server.writeToClient(player.getSocket(), "Correct! Your score: " + player.getScore());
+            } else {
+                Server.writeToClient(player.getSocket(), "Incorrect! Correct answer was: " + correctAnswer);
             }
-
         } catch (IOException e) {
             System.out.println("Error communicating with Client: " + e.getMessage());
+        } finally {
+            latch.countDown();
         }
     }
 }
