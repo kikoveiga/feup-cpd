@@ -5,3 +5,8 @@ assign1/doc/~$cpd_data.xlsx
 .idea
 g17.iml
 out
+**/*.class
+/assign2.iml
+/java
+.idea
+src/database/tokens/*
